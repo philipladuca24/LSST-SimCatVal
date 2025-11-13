@@ -2,8 +2,8 @@ import galsim
 import numpy as np
 from skycatalogs import skyCatalogs
 from skycatalogs.utils import PolygonalRegion
-from .utils import get_wcs, get_bandpasses, get_noise, get_psf, get_sat_vals
-from .utils import MJD, WORLD_ORIGIN,convert_flux, get_flux
+from utils import get_wcs, get_bandpasses, get_noise, get_psf, get_sat_vals
+from utils import MJD, WORLD_ORIGIN,convert_flux, get_flux
 
 class SkyCat:
     def __init__(self,skycat_path,img_size,buffer,wcs):
@@ -96,4 +96,4 @@ class SkyCat:
         dx = u.deg * 3600
         dy = v.deg * 3600
 
-        return gs_object, dx, dy
+        return gs_object, dx, dy, [skycat_obj.ra, skycat_obj.dec] #optional items to make a truth catalog

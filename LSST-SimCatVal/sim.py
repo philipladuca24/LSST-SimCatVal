@@ -4,11 +4,11 @@ if get_ipython().__class__.__name__ == "ZMQInteractiveShell":
 else:
     from tqdm import tqdm
 
-import numpy as np
+from astropy.table import Table
 import galsim
-from .utils import get_wcs, get_psf, get_noise, WORLD_ORIGIN
-from .skycat import SkyCat
-from .afw_utils import create_afw
+from utils import get_wcs, get_psf, get_noise, WORLD_ORIGIN
+from skycat import SkyCat
+from afw_utils import create_afw
 
 def make_sim(
     skycat_path,
@@ -21,8 +21,9 @@ def make_sim(
 ):
     bands = [b for b in bands]
     wcs = get_wcs(img_size)
-    skycat = SkyCat(img_size, buffer, wcs)
+    skycat = SkyCat(skycat_path,img_size, buffer, wcs)
     images = []
+    truths = []
     for band in tqdm(bands):
         psf = get_psf(psf_fwhm)
         
@@ -32,17 +33,22 @@ def make_sim(
         noise_img.addNoise(noise)
 
         final_img = galsim.Image(img_size, img_size, wcs=wcs)
+        truth = []
         for t in ['galaxy', 'star']:
             for g in tqdm(range(skycat.get_n(t))):
-                gal, dx, dy = skycat.get_obj(t, g, band,coadd_zp)
+                gal, dx, dy, obj_info= skycat.get_obj(t, g, band,coadd_zp)
+                obj_info.append(gal.flux)
+                obj_info.append(t)
                 stamp = get_stamp(gal, psf, dx, dy, rng_galsim, skycat, band, wcs)
                 b = stamp.bounds & final_img.bounds
                 if b.isDefined():
                     final_img[b] += stamp[b]
+                    truth.append(obj_info)
         final_img += noise_img
         afw_im = create_afw(final_img, wcs, band, psf_fwhm, sigma, coadd_zp)
         images.append(afw_im)
-    return images
+        truths.append(Table(rows=truth, names=('ra', 'dec','flux','type')))
+    return images, truths
 
 def get_stamp(
     gal, 
