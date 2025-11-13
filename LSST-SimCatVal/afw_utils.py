@@ -16,7 +16,7 @@ import galsim
 import coord
 import numpy as np
 
-from .utils import get_sat_vals
+from utils import get_sat_vals
 
 COLUMNS = [
     'id', 

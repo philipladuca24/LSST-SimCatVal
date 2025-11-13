@@ -40,7 +40,8 @@ def get_bandpasses():
     lsst_bandpasses = dict()
     for band in LSST_BANDS:
         # bp_full_path = f'LSST_{band}.dat'
-        bp_full_path = f'/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal/bandpasses/total_{band}.dat'
+        # bp_full_path = f'/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal/bandpasses/total_{band}.dat'
+        bp_full_path = f'/hildafs/home/pladuca/main/rubin_sim_data/throughputs/baseline/total_{band}.dat'
         bp = galsim.Bandpass(bp_full_path, 'nm')
         bp = bp.truncate(relative_throughput=1.e-3)
         # Remove wavelength values selectively for improved speed but
