@@ -68,7 +68,7 @@ def get_stamp(
     n_photons = galsim.PoissonDeviate(rng_galsim, mean=gal.flux)()
 
     #for correct poisson noise
-    # n_photons = n_photons * 60#num_exposures
+    n_photons = n_photons * 60 #num_exposures
 
     stamp = obj.drawImage(nx=stamp_size, 
                             ny=stamp_size, 

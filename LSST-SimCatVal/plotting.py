@@ -8,7 +8,7 @@ def plot_sim_image(afw_img, cat=None):
     img = afw_img.image.array
     wcs = afw_img.wcs
     norm = ImageNormalize(img, interval=MinMaxInterval(), stretch=AsinhStretch(0.03))
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(8,8))
     ax.imshow(img, origin='lower', cmap='gray', norm=norm) #apply a sinh stretch?
     if cat != None:
         for i in range(len(cat)):
@@ -18,9 +18,9 @@ def plot_sim_image(afw_img, cat=None):
             # y=point.getY()
             x = cat['base_SdssCentroid_x'][i]
             y = cat['base_SdssCentroid_y'][i]
-            xx = cat['base_SdssCentroid_xx'][i]
-            yy = cat['base_SdssCentroid_yy'][i]
-            xy = cat['base_SdssCentroid_xy'][i]
+            xx = cat['base_SdssShape_xx'][i]
+            yy = cat['base_SdssShape_yy'][i]
+            xy = cat['base_SdssShape_xy'][i]
 
             T = 0.5 * (xx + yy)
             D = np.sqrt(((xx - yy) / 2)**2 + xy**2)
