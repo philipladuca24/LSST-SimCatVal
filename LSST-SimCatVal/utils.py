@@ -23,8 +23,8 @@ def get_wcs(img_size):
     return galsim.TanWCS(
         affine=galsim.AffineTransform(
             PIXEL_SCALE, 0, 0, PIXEL_SCALE,
-            origin=galsim.PositionD(img_size / 2, img_size / 2),
-        ),
+            origin=galsim.PositionD(img_size / 2, img_size / 2), # I need to know what Im considering the center, 
+        ),                                                       # since I use 0,0 as corner when sampling skycat
         world_origin=WORLD_ORIGIN,
         units=galsim.arcsec,
     )

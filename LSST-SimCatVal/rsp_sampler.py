@@ -35,30 +35,39 @@ class Dp1Sampler:
         expt_map = self.butler.get('deepCoadd_psf_maglim_consolidated_map_weighted_mean', band='r') # all fields have r band, should I check more / g band
         span_dec = 0.75
         span_ra = span_dec / np.cos(np.deg2rad(DP1_FIELDS[im_field][1]))
-        ra = np.linspace(DP1_FIELDS[im_field][0]-span_ra, DP1_FIELDS[im_field][0]+span_ra, 250)
-        dec = np.linspace(DP1_FIELDS[im_field][1]-span_dec, DP1_FIELDS[im_field][1]+span_dec, 250)
+        ra = np.linspace(DP1_FIELDS[im_field][0]-span_ra, DP1_FIELDS[im_field][0]+span_ra, 200)#sampled at a resolution of 150 lsst pixels/ meshgrid pixel, 
+        dec = np.linspace(DP1_FIELDS[im_field][1]-span_dec, DP1_FIELDS[im_field][1]+span_dec, 200)#this will give some overlap in 200 pixel box background estimates
         x, y = np.meshgrid(ra, dec)
         expt = expt_map.get_values_pos(x, y)
         yy, xx = np.where(expt>0)
         self.sample_points = np.column_stack((ra[xx], dec[yy]))
 
+    def get_zp(self):
+        query = f"band.name = '{'r'}' AND patch.region OVERLAPS POINT({DP1_FIELDS[self.im_field][0]}, {DP1_FIELDS[self.im_field][1]})"
+        dataset_refs = self.butler.query_datasets("deep_coadd", where=query)
+        assert len(dataset_refs) > 0 
+        ref = dataset_refs[0]
+        deep_coadd = self.butler.get(ref) 
+        photcalib = deep_coadd.getPhotoCalib()
+        zp = photcalib.instFluxToMagnitude(1.0)
+        return zp
+    
     def sample(self, num):
         i = 0
         sim_configs = []
         while i < num:
-            choice = np.random.randint(len(self.sample_points))
+            choice = np.random.randint(len(self.sample_points)) # this is uniform random sampling without replacement
             point = self.sample_points[choice]
             try:
                 out = self.measure(point, DP1_BANDS[self.im_field])
                 sim_configs.append(out)
                 i += 1
             except (AssertionError, InvalidPsfError) as e:
-                self.sample_points = np.delete(self.sample_points, choice, axis=0)
-                print(e)
+                self.sample_points = np.delete(self.sample_points, choice, axis=0) # can't think of a better way to remove invalid points
         return sim_configs
 
     def get_image(self, point, band, choice=None):
-        query = f"band.name = '{'r'}' AND patch.region OVERLAPS POINT({point[0]}, {point[1]})"
+        query = f"band.name = '{band}' AND patch.region OVERLAPS POINT({point[0]}, {point[1]})"
         dataset_refs = self.butler.query_datasets("deep_coadd", where=query)
         assert len(dataset_refs) > 0 
         if choice == None:
