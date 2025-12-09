@@ -79,20 +79,20 @@ class Dp1Sampler:
         deep_coadd = self.butler.get(ref)  
         return deep_coadd
 
-    def get_measures(self, band, deep_coadd, bbox, point_image,zp):
+    def get_measures(self, band, deep_coadd, bbox, point_image):
         mi = deep_coadd.getMaskedImage()
         mi = MaskedImageF(mi, bbox, deep=True)
         variance = deep_coadd.getVariance()
         masked = deep_coadd.getMask()
 
-        threshold_sigma = 10.0
+        threshold_sigma = 5.0
         threshold = Threshold(threshold_sigma)
         footprints = FootprintSet(mi, threshold)
         mask_plane_name = 'DETECTED'
         footprints.setMask(masked, mask_plane_name)
         combo = (masked.array == 0)
         var = variance.array
-        var_out = np.sqrt(np.median(var[combo]))
+        sigma_out = np.sqrt(np.median(var[combo]))
 
         psf_coadd = deep_coadd.getPsf()
         psf_shape = psf_coadd.computeShape(point_image)
@@ -102,15 +102,12 @@ class Dp1Sampler:
         #psf image for interpolation
         # psf_out = psf_coadd.computeKernelImage(point_image)
 
-        return {band: {'zp': zp,'psf': psf_out,'var': var_out}}
+        return {band: {'psf': psf_out,'sigma': sigma_out}}
             
     def measure(self, point, bands):
         out = {}
         bands = bands.replace('r', '')
         deep_coadd, choice = self.get_image(point, 'r')
-        
-        photcalib = deep_coadd.getPhotoCalib()
-        zp = photcalib.instFluxToMagnitude(1.0)
         
         my_spherePoint = SpherePoint(point[0]*degrees, point[1]*degrees)
         wcs_coadd = deep_coadd.getWcs()
@@ -127,11 +124,11 @@ class Dp1Sampler:
         y1 = y0 + box_size
         bbox = Box2I(Point2I(x0 + deep_coadd.getX0(), y0 + deep_coadd.getY0()), Point2I(x1 + deep_coadd.getX0(), y1 + deep_coadd.getY0()))
 
-        out = self.get_measures('r', deep_coadd, bbox, point_image,zp)
+        out = self.get_measures('r', deep_coadd, bbox, point_image)
 
         for band in bands:
             deep_coadd = self.get_image(point, band, choice)
-            temp = self.get_measures(band, deep_coadd, bbox, point_image, zp)
+            temp = self.get_measures(band, deep_coadd, bbox, point_image)
             out = out | temp
 
         return out

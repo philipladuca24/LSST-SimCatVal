@@ -12,23 +12,26 @@ from afw_utils import create_afw
 
 def make_sim(
     skycat_path,
+    ra, 
+    dec,
     img_size,
-    bands,
     buffer,
-    psf_fwhm,
-    sigma,
+    config_dic,
     coadd_zp
 ):
-    bands = [b for b in bands]
-    wcs = get_wcs(img_size)
-    skycat = SkyCat(skycat_path,img_size, buffer, wcs)
-    images = []
-    truths = []
-    for band in tqdm(bands):
+    pointing = galsim.CelestialCoord(ra=ra * galsim.degrees,dec=dec * galsim.degrees)
+    wcs = get_wcs(img_size, pointing)
+    skycat = SkyCat(skycat_path, pointing, img_size, buffer, wcs)
+    images_afw = {}
+    truths = {}
+    images_save = {'ra': ra, 'dec':dec}
+    for band in tqdm(config_dic.keys()):
+        psf_fwhm = config_dic[band]['psf']
+        sigma = config_dic[band]['sigma']
         psf = get_psf(psf_fwhm)
         
         noise_img = galsim.Image(img_size, img_size, wcs=wcs)
-        rng_galsim = galsim.BaseDeviate(1)
+        rng_galsim = galsim.BaseDeviate()
         noise = get_noise(rng_galsim, sigma)
         noise_img.addNoise(noise)
 
@@ -37,46 +40,50 @@ def make_sim(
         for t in ['galaxy', 'star']:
             for g in tqdm(range(skycat.get_n(t))):
                 gal, dx, dy, obj_info= skycat.get_obj(t, g, band,coadd_zp)
-                obj_info.append(gal.flux)
-                obj_info.append(t)
-                stamp = get_stamp(gal, psf, dx, dy, rng_galsim, skycat, band, wcs)
+                stamp = get_stamp(gal, psf, pointing, dx, dy, rng_galsim, skycat, band, wcs, (t=='star'))
                 b = stamp.bounds & final_img.bounds
                 if b.isDefined():
                     final_img[b] += stamp[b]
                     truth.append(obj_info)
         final_img += noise_img
+
+        images_save[band] = {'image':final_img.array.copy(), 'psf':psf_fwhm, 'sigma':sigma}
+
         afw_im = create_afw(final_img, wcs, band, psf_fwhm, sigma, coadd_zp)
-        images.append(afw_im)
-        truths.append(Table(rows=truth, names=('ra', 'dec','flux','type')))
-    return images, truths
+        images_afw[band] = afw_im
+        truths[band] = (Table(rows=truth, names=('ra', 'dec','flux','ob_type')))
+    return images_afw, truths, images_save
 
 def get_stamp(
     gal, 
     psf, 
+    pointing,
     dx, 
     dy, 
     rng_galsim, 
     skycat, 
     band, 
-    wcs
+    wcs,
+    star=False
 ):
     obj = galsim.Convolve(gal, psf)
-    world_pos = WORLD_ORIGIN.deproject(dx * galsim.arcsec, dy * galsim.arcsec,)
+    world_pos = pointing.deproject(dx * galsim.arcsec, dy * galsim.arcsec,)
     image_pos = wcs.toImage(world_pos)
-    stamp_size = 150
-    maxN = int(1e6)
     n_photons = galsim.PoissonDeviate(rng_galsim, mean=gal.flux)()
+    if star or n_photons >= 5e5:
+        stamp_size = 225
+    else:
+        stamp_size = 150
+    n_photons = n_photons * 60 #for correct poisson noise
 
-    #for correct poisson noise
-    n_photons = n_photons * 60 #num_exposures
-
-    stamp = obj.drawImage(nx=stamp_size, 
-                            ny=stamp_size, 
-                            bandpass=skycat.bands[band], 
-                            wcs=wcs.local(world_pos=world_pos), 
-                            method='phot',
-                            center=image_pos,
-                            n_photons=n_photons,
-                            maxN=maxN,
-                            rng=rng_galsim)
+    stamp = obj.drawImage(
+        nx=stamp_size,
+        ny=stamp_size,
+        bandpass=skycat.bands[band], 
+        wcs=wcs.local(world_pos=world_pos), 
+        method='phot',
+        n_photons=n_photons,
+        maxN=int(1e6),
+        rng=rng_galsim)
+    stamp.setCenter(image_pos.x, image_pos.y)
     return stamp

@@ -1,17 +1,17 @@
 import galsim
 import numpy as np
-import healpy as hp
 from skycatalogs import skyCatalogs
 from skycatalogs.utils import PolygonalRegion
-from utils import get_wcs, get_bandpasses, get_noise, get_psf, get_sat_vals
-from utils import MJD, WORLD_ORIGIN,convert_flux, get_flux
+from utils import get_bandpasses
+from utils import MJD, convert_flux, get_flux
 
 class SkyCat:
-    def __init__(self,skycat_path,img_size,buffer,wcs):
+    def __init__(self,skycat_path, pointing, img_size,buffer,wcs):
         self.img_size = img_size
         self.buffer = buffer
         self.wcs = wcs
         self.sky_cat = skyCatalogs.open_catalog(skycat_path)
+        self.pointing = pointing
 
         corners = (
             (-buffer, -buffer),
@@ -47,7 +47,7 @@ class SkyCat:
             flux = get_flux(skycat_obj, band)# This directly gets the flux from flux.parquet for both star and gal
             flux = convert_flux(flux, self.bands[band],coadd_zp)
             faint=True
-            flux_cap = 3e6
+            flux_cap = 5e5
             if flux > flux_cap:
                 flux = flux_cap
         else: 
@@ -93,31 +93,9 @@ class SkyCat:
             ra=skycat_obj.ra * galsim.degrees,
             dec=skycat_obj.dec * galsim.degrees,
         )
-        u, v = WORLD_ORIGIN.project(coord)
+        u, v = self.pointing.project(coord)
         dx = u.deg * 3600
         dy = v.deg * 3600
 
-        return gs_object, dx, dy, [skycat_obj.ra, skycat_obj.dec] #optional items to make a truth catalog
+        return gs_object, dx, dy, [skycat_obj.ra, skycat_obj.dec, float(flux), str(gs_object.object_type)] #optional items to make a truth catalog
 
-class Region_Sampler():
-    def __init__(self,img_size):
-        dec_cen = WORLD_ORIGIN.dec / galsim.degrees
-        ra_cen = WORLD_ORIGIN.ra / galsim.degrees
-        span_dec = 1.67
-        span_ra = span_dec / np.cos(np.deg2rad(dec_cen))
-        count = np.ceil((2*span_dec*3600 / img_size)/0.2)
-        ra = np.linspace(ra_cen-span_ra, ra_cen+span_ra, count)
-        dec = np.linspace(dec_cen-span_dec, dec_cen+span_dec, count)
-        x1, y1 = np.meshgrid(ra, dec)
-        theta = np.pi / 2.0 - np.radians(y1)
-        phi = np.radians(x1)
-        in_pix = hp.ang2pix(32, theta, phi)
-        yy, xx = np.where(in_pix == 10307)
-        xy_points = np.column_stack((ra[xx], dec[yy]))
-        self.point_set = xy_points
-
-    def sample(self):
-        choice = np.random.randint(len(self.point_set))
-        out = self.point_set[choice]
-        self.point_set = np.delete(self.point_set, choice, axis=0) #sample without replacement
-        return out
