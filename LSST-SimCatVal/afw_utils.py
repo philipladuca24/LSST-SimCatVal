@@ -102,7 +102,11 @@ def create_afw(img,wcs,band,fwhm,sigma,coadd_zp):
 
     # detector = DetectorWrapper().detector
     # exp.setDetector(detector)
+
     # band_sats = get_sat_vals(coadd_zp)
+    # exp.mask.array = np.where(exp.image.array > band_sats[band], exp.mask.array | afw_image.Mask.getPlaneBitMask('SAT'), exp.mask.array)
+    # exp.image.array = np.where(exp.image.array > band_sats[band], band_sats[band], exp.image.array)
+
     # ny, nx = exp.image.array.shape
     # for row in range(ny):
     #     for col in range(nx):
@@ -110,6 +114,8 @@ def create_afw(img,wcs,band,fwhm,sigma,coadd_zp):
     #             exp.image.array[row, col] = band_sats[band]
     #             exp.mask.array[row, col] |= afw_image.Mask.getPlaneBitMask('SAT')
                 # can I change this to np.where? this seems so slow
+
+    
     return exp
 
 def run_lsst_pipe_single(exp, deblend=True):

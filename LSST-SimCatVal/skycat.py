@@ -47,9 +47,9 @@ class SkyCat:
             flux = get_flux(skycat_obj, band)# This directly gets the flux from flux.parquet for both star and gal
             flux = convert_flux(flux, self.bands[band],coadd_zp)
             faint=True
-            flux_cap = 5e5
-            if flux > flux_cap:
-                flux = flux_cap
+            # flux_cap = 1e6
+            # if flux > flux_cap:
+            #     flux = flux_cap
         else: 
             skycat_obj = self.galaxies[index]
             flux = get_flux(skycat_obj, band)#(skycat_obj.get_LSST_flux(band, mjd=MJD))# * exptime * COLLECTING_AREA) #only needed if not setting ZP in bandpass

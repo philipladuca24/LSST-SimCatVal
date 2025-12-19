@@ -1,4 +1,6 @@
 outputs/
+outputs_test/
+outputs_v2/
 ECDFS_1000.pkl
 test_sim_3000_i_4-800542855802589_2-286575_31-4.npy
 test_truths_3000_i_4-800542855802589_2-286575_31-4.csv
@@ -11,7 +13,11 @@ dp1_mags_v1.pickle
 dp1_mags_v2.pickle
 dp1_mags_v2.1.pickle
 ECDFS_1000_v2.pkl
-
+ECDFS_1000_v3.pkl
+true_cat.pkl
+full_cat.pkl
+dp1_mags_g_full.pickle
+dp1_mags_i_full.pickle
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

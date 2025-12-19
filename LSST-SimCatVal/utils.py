@@ -66,6 +66,60 @@ def convert_flux(flux, band, coadd_zp):
     zp = band.zeropoint
     return flux * 10 ** (0.4 * (coadd_zp - zp))
 
+def is_point_in_polygon(ra_poly, dec_poly, px, py):
+    vertices = np.array(list(zip(ra_poly, dec_poly)))
+    n = len(vertices)
+
+    px_flat = px.flatten()
+    py_flat = py.flatten()
+    inside = np.ones_like(px_flat, dtype=bool)
+
+    for i in range(n):
+        A = vertices[i]
+        B = vertices[(i+1) % n]
+        cross = (B[0] - A[0]) * (py_flat - A[1]) - (B[1] - A[1]) * (px_flat - A[0])
+        inside &= (cross >= 0)  # for CCW polygon
+
+    return inside.reshape(px.shape)
+
+def unit(v):
+    return v / np.linalg.norm(v)
+
+def offset_polygon_ra_dec(ra, dec, offset):
+    vertices = np.array(list(zip(ra, dec)))
+    n = len(vertices)
+    new_edges = []
+
+    for i in range(n):
+        A = vertices[i]
+        B = vertices[(i+1) % n]
+        edge = B - A
+        normal = np.array([-edge[1], edge[0]])
+        normal = unit(normal)
+
+        A_off = A + normal * offset
+        B_off = B + normal * offset
+        new_edges.append((A_off, B_off))
+
+    def intersect(L1, L2):
+        p1, p2 = L1
+        q1, q2 = L2
+        A_mat = np.array([p2 - p1, q1 - q2]).T
+        t = np.linalg.solve(A_mat, q1 - p1)[0]
+        return p1 + t * (p2 - p1)
+
+    new_vertices = []
+    for i in range(n):
+        L1 = new_edges[i]
+        L2 = new_edges[(i+1) % n]
+        new_vertices.append(intersect(L1, L2))
+
+    new_vertices = np.array(new_vertices)
+    ra_new = new_vertices[:, 0].tolist()
+    dec_new = new_vertices[:, 1].tolist()
+
+    return ra_new, dec_new
+
 def sample_position(count, inp):
     np.random.seed(inp)
     theta, phi = hp.pix2ang(32, 10307)
@@ -73,14 +127,25 @@ def sample_position(count, inp):
     dec_cen = np.degrees(0.5 * np.pi - theta)
     span_dec = 1.67
     span_ra = span_dec / np.cos(np.deg2rad(dec_cen))
-    ra = np.linspace(ra_cen-span_ra, ra_cen+span_ra, 67)
-    dec = np.linspace(dec_cen-span_dec, dec_cen+span_dec, 67)
-    x1, y1 = np.meshgrid(ra, dec)
-    theta = np.pi / 2.0 - np.radians(y1)
-    phi = np.radians(x1)
-    in_pix = hp.ang2pix(32, theta, phi)
-    yy, xx = np.where(in_pix == 10307)
-    xy_points = np.column_stack((ra[xx], dec[yy]))
+    ra_span = np.linspace(ra_cen-span_ra, ra_cen+span_ra, 67)
+    dec_span = np.linspace(dec_cen-span_dec, dec_cen+span_dec, 67)
+    x1, y1 = np.meshgrid(ra_span, dec_span)
+    
+    vertices = hp.boundaries(32, 10307, step=1)
+    x, y, z = vertices
+    theta = np.arccos(z)   
+    phi = np.arctan2(y, x)    
+    ra = np.degrees(phi)       
+    ra = np.mod(ra, 360)   
+    dec = 90 - np.degrees(theta) 
+    ra_new, dec_new = offset_polygon_ra_dec(ra, dec, 900*0.2/3600)
+    # theta = np.pi / 2.0 - np.radians(y1)
+    # phi = np.radians(x1)
+    # in_pix = hp.ang2pix(32, theta, phi)
+    # yy, xx = np.where(in_pix == 10307)
+    # xy_points = np.column_stack((ra_span[xx], dec_span[yy]))
+    mask = is_point_in_polygon(ra_new, dec_new, x1, y1)
+    xy_points = np.column_stack((x1[mask], y1[mask]))
     rand_perm = np.random.permutation(len(xy_points))
     rand_perm = rand_perm[:min(len(xy_points),count)]
     return xy_points[rand_perm]
