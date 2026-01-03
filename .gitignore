@@ -18,6 +18,7 @@ true_cat.pkl
 full_cat.pkl
 dp1_mags_g_full.pickle
 dp1_mags_i_full.pickle
+psf_test.pkl
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
