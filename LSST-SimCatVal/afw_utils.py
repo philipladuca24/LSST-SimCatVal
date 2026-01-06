@@ -1,4 +1,6 @@
-import lsst.afw.image as afw_image
+import lsst.afw.image as afwImage
+import lsst.afw.math as afwMath
+from lsst.meas.algorithms import KernelPsf
 from lsst.pipe.tasks.characterizeImage import CharacterizeImageTask
 from lsst.meas.algorithms.detection import SourceDetectionTask
 from lsst.meas.algorithms.subtractBackground import SubtractBackgroundTask
@@ -61,8 +63,12 @@ COLUMNS = [
 
 def create_afw(img,wcs,band,fwhm,sigma,coadd_zp):
 
-    psf = psffac(defaultFwhm=fwhm, addWing=False)
-    psf = psf.apply()
+    # psf = psffac(defaultFwhm=fwhm, addWing=False)
+    # psf = psf.apply()
+    psf = afwImage.ImageF(fwhm)
+    psf = afwImage.ImageD(psf, deep=True)
+    psf = afwMath.FixedKernel(psf)
+    psf = KernelPsf(psf)
 
     crpix = wcs.crpix
     # DM uses 0 offset, galsim uses FITS 1 offset
@@ -80,7 +86,7 @@ def create_afw(img,wcs,band,fwhm,sigma,coadd_zp):
     variance = img.copy()
     variance.array[:, :] = sigma**2
 
-    masked_image = afw_image.MaskedImage(len(img.array[0]), len(img.array[0]), dtype=np.float32)
+    masked_image = afwImage.MaskedImage(len(img.array[0]), len(img.array[0]), dtype=np.float32)
     masked_image.image.array[:, :] = img.array
     masked_image.variance.array[:, :] = variance.array
 
@@ -88,12 +94,12 @@ def create_afw(img,wcs,band,fwhm,sigma,coadd_zp):
     bmask = np.zeros(shape, dtype=np.int64)
     masked_image.mask.array[:, :] = bmask
 
-    exp = afw_image.Exposure(masked_image, dtype=np.float32)
+    exp = afwImage.Exposure(masked_image, dtype=np.float32)
     zero_flux = 10.0 ** (0.4 * coadd_zp)
-    photoCalib = afw_image.makePhotoCalibFromCalibZeroPoint(zero_flux)
+    photoCalib = afwImage.makePhotoCalibFromCalibZeroPoint(zero_flux)
     exp.setPhotoCalib(photoCalib)
 
-    filter_label = afw_image.FilterLabel(band=band, physical=band)
+    filter_label = afwImage.FilterLabel(band=band, physical=band)
     exp.setFilter(filter_label)
 
     exp.setPsf(psf)
