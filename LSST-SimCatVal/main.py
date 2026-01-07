@@ -32,7 +32,7 @@ def SimCatVal(
     print('Generating Sims') #this should take in info dict which is ouput of sampler, also need to change world origin
     afw_dic, truths, npy_dic = make_sim(skycat_path, ra, dec, img_size, buffer, config_dic, coadd_zp)
     
-    timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+    timestamp = datetime.now().strftime("%Y%m%dT%H%M%S") #this needs to change
     file_path = f'/hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal/outputs/run_{timestamp}'
     os.makedirs(file_path, exist_ok=True)
     with open(f'{file_path}/ECDFS_sim_im.pkl', "wb") as f:

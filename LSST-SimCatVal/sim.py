@@ -80,14 +80,14 @@ def get_stamp(
             stamp_size = 600
 
         stamp = obj.drawImage(
-        nx=stamp_size,
-        ny=stamp_size,
-        bandpass=skycat.bands[band], 
-        wcs=wcs.local(world_pos=world_pos), 
-        method='phot',
-        n_photons=n_photons,
-        maxN=int(1e7),
-        rng=rng_galsim)
+            nx=stamp_size,
+            ny=stamp_size,
+            bandpass=skycat.bands[band], 
+            wcs=wcs.local(world_pos=world_pos), 
+            method='phot',
+            n_photons=n_photons,
+            maxN=int(1e7),
+            rng=rng_galsim)
         stamp.setCenter(image_pos.x, image_pos.y)
         return stamp
 

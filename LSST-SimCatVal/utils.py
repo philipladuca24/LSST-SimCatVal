@@ -36,10 +36,14 @@ def get_wcs(img_size, point):
     )
 
 def get_psf(fwhm): #fwhm preliminary from DP1 2.6*0.2
-    # fwhm = fwhm * 0.2 #convert pixels to arcsec
-    # return galsim.Kolmogorov(fwhm=fwhm,scale_unit=galsim.arcsec)
-    fwhm = galsim.Image(fwhm)
-    return galsim.InterpolatedImage(fwhm, scale=0.2, depixelize=True, normalization='flux')
+    fwhm = 4.763105411843494 * 0.2 #convert pixels to arcsec
+    psf = galsim.Kolmogorov(fwhm=fwhm,scale_unit=galsim.arcsec)
+    # return psf
+    psf = psf.drawImage(nx=100,ny=100,scale=0.2,method='no_pixel')
+    return galsim.InterpolatedImage(psf, scale=0.2, normalization='flux', x_interpolant=galsim.Lanczos(7))
+    # fwhm = galsim.Image(fwhm)
+    # return galsim.InterpolatedImage(fwhm, scale=0.2, normalization='flux',use_true_center=True,x_interpolant=galsim.Lanczos(5))
+    # return galsim.InterpolatedImage(fwhm, scale=0.2, depixelize=True, normalization='flux')
 
 
 def get_noise(galsim_rng,sigma=0.1):
