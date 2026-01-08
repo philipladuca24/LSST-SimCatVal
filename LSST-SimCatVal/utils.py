@@ -38,11 +38,14 @@ def get_wcs(img_size, point):
 def get_psf(fwhm): #fwhm preliminary from DP1 2.6*0.2
     fwhm = 4.763105411843494 * 0.2 #convert pixels to arcsec
     psf = galsim.Kolmogorov(fwhm=fwhm,scale_unit=galsim.arcsec)
-    # return psf
-    psf = psf.drawImage(nx=100,ny=100,scale=0.2,method='no_pixel')
-    return galsim.InterpolatedImage(psf, scale=0.2, normalization='flux', x_interpolant=galsim.Lanczos(7))
+    e1 = (4.276403865164397 - 3.9147911399189756) / (4.276403865164397 + 3.9147911399189756) # Mxx - Myy / Mxx + Myy 
+    e2 = 2 * 0.04705147820609136 / (4.276403865164397 - 3.9147911399189756) # 2Mxy / Mxx + Myy
+    return psf.shear(e1=e1, e2=e2)
+    # psf = psf.drawImage(nx=101,ny=101,scale=0.2,method='no_pixel')
+    # return galsim.InterpolatedImage(psf, scale=0.2, normalization='flux', depixelize=True, x_interpolant=galsim.Lanczos(7))
+    # fwhm = np.pad(fwhm,35,mode='constant')
     # fwhm = galsim.Image(fwhm)
-    # return galsim.InterpolatedImage(fwhm, scale=0.2, normalization='flux',use_true_center=True,x_interpolant=galsim.Lanczos(5))
+    # # return galsim.InterpolatedImage(fwhm, scale=0.2, normalization='flux',use_true_center=True,x_interpolant=galsim.Lanczos(5))
     # return galsim.InterpolatedImage(fwhm, scale=0.2, depixelize=True, normalization='flux')
 
 
