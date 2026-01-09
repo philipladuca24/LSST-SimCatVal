@@ -61,11 +61,11 @@ COLUMNS = [
     'base_CircularApertureFlux_25_0_instFluxErr',
 ]
 
-def create_afw(img,wcs,band,fwhm,sigma,coadd_zp):
+def create_afw(img,wcs,band,psf_im,sigma,coadd_zp):
 
     # psf = psffac(defaultFwhm=fwhm, addWing=False)
     # psf = psf.apply()
-    psf = afwImage.ImageF(fwhm)
+    psf = afwImage.ImageF(np.array(psf_im.array,dtype=np.float32)) # a generated image of the kolmogorov psf
     psf = afwImage.ImageD(psf, deep=True)
     psf = afwMath.FixedKernel(psf)
     psf = KernelPsf(psf)

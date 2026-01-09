@@ -35,11 +35,11 @@ def get_wcs(img_size, point):
         units=galsim.arcsec,
     )
 
-def get_psf(fwhm): #fwhm preliminary from DP1 2.6*0.2
-    fwhm = 4.763105411843494 * 0.2 #convert pixels to arcsec
+def get_psf(m2r, e1=None, e2=None): #use ratio to convert to fwhm for kolmogorov profile
+    fwhm = 1.5367183837183993 * m2r * 0.2 #convert pixels to arcsec
     psf = galsim.Kolmogorov(fwhm=fwhm,scale_unit=galsim.arcsec)
     e1 = (4.276403865164397 - 3.9147911399189756) / (4.276403865164397 + 3.9147911399189756) # Mxx - Myy / Mxx + Myy 
-    e2 = 2 * 0.04705147820609136 / (4.276403865164397 - 3.9147911399189756) # 2Mxy / Mxx + Myy
+    e2 = 2 * 0.04705147820609136 / (4.276403865164397 + 3.9147911399189756) # 2Mxy / Mxx + Myy
     return psf.shear(e1=e1, e2=e2)
     # psf = psf.drawImage(nx=101,ny=101,scale=0.2,method='no_pixel')
     # return galsim.InterpolatedImage(psf, scale=0.2, normalization='flux', depixelize=True, x_interpolant=galsim.Lanczos(7))

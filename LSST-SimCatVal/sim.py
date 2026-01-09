@@ -26,10 +26,12 @@ def make_sim(
     truths = {}
     images_save = {'ra': ra, 'dec':dec}
     for band in tqdm(config_dic.keys(), mininterval=10):
-        psf_fwhm = config_dic[band]['psf']
+        psf_m2r = config_dic[band]['psf']
         sigma = config_dic[band]['sigma']
         nim = config_dic[band]['n_images']
-        psf = get_psf(psf_fwhm)
+        e1 = config_dic[band]['e1']
+        e2 = config_dic[band]['e2']
+        psf = get_psf(psf_m2r, e1, e2)
         
         noise_img = galsim.Image(img_size, img_size, wcs=wcs)
         rng_galsim = galsim.BaseDeviate()
@@ -39,7 +41,7 @@ def make_sim(
         final_img = galsim.Image(img_size, img_size, wcs=wcs)
         truth = []
         for t in ['galaxy', 'star']:
-            for g in tqdm(range(skycat.get_n(t)),mininterval=10, miniters=300):
+            for g in tqdm(range(skycat.get_n(t)),mininterval=20, miniters=600):
                 gal, dx, dy, obj_info= skycat.get_obj(t, g, band,coadd_zp)
                 stamp = get_stamp(gal, psf, pointing, dx, dy, rng_galsim, skycat, band, wcs, nim, (t=='star'))
                 b = stamp.bounds & final_img.bounds
@@ -47,10 +49,10 @@ def make_sim(
                     final_img[b] += stamp[b]
                     truth.append(obj_info)
         final_img += noise_img
-
-        images_save[band] = {'image':final_img.array.copy(), 'psf':psf_fwhm, 'sigma':sigma, 'n_images':nim}
-
-        afw_im = create_afw(final_img, wcs, band, psf_fwhm, sigma, coadd_zp)
+        
+        psf_im = psf.drawImage(nx=51,ny=51,scale=0.2, dtype=float)
+        images_save[band] = {'image':final_img.array.copy(), 'psf':psf_m2r, 'sigma':sigma, 'n_images':nim}
+        afw_im = create_afw(final_img, wcs, band, psf_im, sigma, coadd_zp)
         images_afw[band] = afw_im
         truths[band] = (Table(rows=truth, names=('ra', 'dec','flux','ob_type')))
     return images_afw, truths, images_save
@@ -73,10 +75,10 @@ def get_stamp(
     image_pos = wcs.toImage(world_pos)
     n_photons = galsim.PoissonDeviate(rng_galsim, mean=gal.flux)()
 
-    if star and n_photons >= 1e6:
-        n_photons = 1e6
-        stamp_size = 350
+    if star and n_photons >= 5e5:
+        stamp_size = 250
         if n_photons >= 1e8:
+            n_photons = 1e8
             stamp_size = 600
 
         stamp = obj.drawImage(
@@ -93,8 +95,8 @@ def get_stamp(
 
 
     n_photons = n_photons * nim #for correct poisson noise
-    if n_photons >= 1e6:
-        n_photons = 1e6
+    if n_photons >= 1e8:
+        n_photons = 1e8
 
     stamp = obj.drawImage(
         # nx=stamp_size, # this auto chooses a size
