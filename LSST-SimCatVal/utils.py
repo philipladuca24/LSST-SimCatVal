@@ -36,11 +36,22 @@ def get_wcs(img_size, point):
     )
 
 def get_psf(m2r, e1=None, e2=None): #use ratio to convert to fwhm for kolmogorov profile
-    fwhm = 1.5367183837183993 * m2r * 0.2 #convert pixels to arcsec
-    psf = galsim.Kolmogorov(fwhm=fwhm,scale_unit=galsim.arcsec)
+    test_val = 3
+    tpsf = galsim.Kolmogorov(fwhm=test_val, scale_unit=galsim.arcsec)
     e1 = (4.276403865164397 - 3.9147911399189756) / (4.276403865164397 + 3.9147911399189756) # Mxx - Myy / Mxx + Myy 
     e2 = 2 * 0.04705147820609136 / (4.276403865164397 + 3.9147911399189756) # 2Mxy / Mxx + Myy
-    return psf.shear(e1=e1, e2=e2)
+    tpsf = tpsf.shear(e1=e1, e2=e2)
+    tpsf_i = tpsf.drawImage(scale=0.2,method='no_pixel')
+    ratio = test_val / galsim.hsm.FindAdaptiveMom(tpsf_i).moments_sigma
+
+    psf = galsim.Kolmogorov(fwhm=m2r * ratio, scale_unit=galsim.arcsec)
+    psf = psf.shear(e1=e1, e2=e2)
+    return psf
+    # fwhm = 1.5367183837183993 * m2r * 0.2 #convert pixels to arcsec
+    # psf = galsim.Kolmogorov(fwhm=fwhm,scale_unit=galsim.arcsec)
+    # e1 = (4.276403865164397 - 3.9147911399189756) / (4.276403865164397 + 3.9147911399189756) # Mxx - Myy / Mxx + Myy 
+    # e2 = 2 * 0.04705147820609136 / (4.276403865164397 + 3.9147911399189756) # 2Mxy / Mxx + Myy
+    # return psf.shear(e1=e1, e2=e2)
     # psf = psf.drawImage(nx=101,ny=101,scale=0.2,method='no_pixel')
     # return galsim.InterpolatedImage(psf, scale=0.2, normalization='flux', depixelize=True, x_interpolant=galsim.Lanczos(7))
     # fwhm = np.pad(fwhm,35,mode='constant')
