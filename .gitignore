@@ -19,6 +19,9 @@ full_cat.pkl
 dp1_mags_g_full.pickle
 dp1_mags_i_full.pickle
 psf_test.pkl
+ECDFS_1000_psf_e12.pkl
+test_psf_cat.pkl
+test_psf_cat2.pkl
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -5,7 +5,7 @@ import pickle as pkl
 
 ind = int(sys.argv[1])
 
-with open('/hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal/ECDFS_1000_v3.pkl', 'rb') as f:
+with open('/hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal/ECDFS_1000_psf_e12.pkl', 'rb') as f:
     rsp_sample = pkl.load(f)
 
 position = sample_position(ind, 67)

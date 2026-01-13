@@ -33,7 +33,7 @@ def SimCatVal(
     afw_dic, truths, npy_dic = make_sim(skycat_path, ra, dec, img_size, buffer, config_dic, coadd_zp)
     
     timestamp = datetime.now().strftime("%Y%m%dT%H%M%S") #this needs to change
-    file_path = f'/hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal/outputs/run_{timestamp}'
+    file_path = f'/hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal/outputs_v2/run_{timestamp}'
     os.makedirs(file_path, exist_ok=True)
     with open(f'{file_path}/ECDFS_sim_im.pkl', "wb") as f:
         pickle.dump(npy_dic, f)
@@ -45,20 +45,7 @@ def SimCatVal(
     cats = {}
     for band in tqdm(config_dic.keys()):
         lsst_cat = run_lsst_pipe_single(afw_dic[band], deblend)
-
-        # primary = ((np.isnan(lsst_cat["modelfit_CModel_instFlux"]) == False) & 
-        # (lsst_cat["modelfit_CModel_instFlux"]/lsst_cat["modelfit_CModel_instFluxErr"] > 0) &
-        # (lsst_cat["modelfit_CModel_flag"] == 0))
-                
-        # if (deblend == True):
-        #     primary *= lsst_cat["deblend_nChild"] == 0
-
-        # cat = lsst_cat[primary]
-        cat = lsst_cat
-        cat['mag'] = -2.5*np.log10(cat['modelfit_CModel_instFlux']) + coadd_zp
-        cat['snr'] = cat['modelfit_CModel_instFlux'] / cat['modelfit_CModel_instFluxErr']
-
-        cats[band] = cat
+        cats[band] = lsst_cat
 
         #matching move to utils?
 

@@ -26,11 +26,11 @@ def make_sim(
     truths = {}
     images_save = {'ra': ra, 'dec':dec}
     for band in tqdm(config_dic.keys(), mininterval=10):
-        psf_m2r = config_dic[band]['psf']
+        psf_m2r = config_dic[band]['psf_radius']
         sigma = config_dic[band]['sigma']
         nim = config_dic[band]['n_images']
-        e1 = config_dic[band]['e1']
-        e2 = config_dic[band]['e2']
+        e1 = config_dic[band]['psf_e1']
+        e2 = config_dic[band]['psf_e2']
         psf = get_psf(psf_m2r, e1, e2)
         
         noise_img = galsim.Image(img_size, img_size, wcs=wcs)
@@ -50,7 +50,7 @@ def make_sim(
                     truth.append(obj_info)
         final_img += noise_img
         
-        psf_im = psf.drawImage(nx=51,ny=51,scale=0.2, dtype=float)
+        psf_im = psf.drawImage(nx=41,ny=41,scale=0.2, dtype=float)
         images_save[band] = {'image':final_img.array.copy(), 'psf':psf_m2r, 'sigma':sigma, 'n_images':nim}
         afw_im = create_afw(final_img, wcs, band, psf_im, sigma, coadd_zp)
         images_afw[band] = afw_im
