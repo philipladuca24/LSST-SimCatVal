@@ -25,15 +25,16 @@ def SimCatVal(
     # psf_fwhm=None,
     # sigma=None,
     coadd_zp,
-    deblend
+    ind
 ):
     assert os.path.isfile(skycat_path)
   
     print('Generating Sims') #this should take in info dict which is ouput of sampler, also need to change world origin
     afw_dic, truths, npy_dic = make_sim(skycat_path, ra, dec, img_size, buffer, config_dic, coadd_zp)
     
-    timestamp = datetime.now().strftime("%Y%m%dT%H%M%S") #this needs to change
-    file_path = f'/hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal/outputs_v2/run_{timestamp}'
+    timestamp = datetime.now().strftime("%Y%m%dT%H%") #this needs to change
+    # move this to by a parameter in run.py maybe given by runner.job
+    file_path = f'/hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal/outputs_v3/run_{timestamp}_{ind}'
     os.makedirs(file_path, exist_ok=True)
     with open(f'{file_path}/ECDFS_sim_im.pkl', "wb") as f:
         pickle.dump(npy_dic, f)
@@ -44,7 +45,7 @@ def SimCatVal(
     matches = []
     cats = {}
     for band in tqdm(config_dic.keys()):
-        lsst_cat = run_lsst_pipe_single(afw_dic[band], deblend)
+        lsst_cat = run_lsst_pipe_single(afw_dic[band])
         cats[band] = lsst_cat
 
         #matching move to utils?
