@@ -24,6 +24,7 @@ test_psf_cat.pkl
 test_psf_cat2.pkl
 outputs_v3
 full_cat_v2.pkl
+true_cat_v2.pkl
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -16,4 +16,4 @@ sample.pop('ra')
 sample.pop('dec')
 ##temp
 # simp = {'r':sample['r']}
-_ = SimCatVal('/hildafs/home/pladuca/main/skyCatalog.yaml',ra,dec,900,50,sample,31.4,True)
+_ = SimCatVal('/hildafs/home/pladuca/main/skyCatalog.yaml',ra,dec,900,50,sample,31.4,ind)
