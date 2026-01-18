@@ -35,11 +35,9 @@ def get_wcs(img_size, point):
         units=galsim.arcsec,
     )
 
-def get_psf(m2r, e1=None, e2=None): #use ratio to convert to fwhm for kolmogorov profile
+def get_psf(m2r, e1, e2): #use ratio to convert to fwhm for kolmogorov profile
     test_val = 3
     tpsf = galsim.Kolmogorov(fwhm=test_val, scale_unit=galsim.arcsec)
-    e1 = (4.276403865164397 - 3.9147911399189756) / (4.276403865164397 + 3.9147911399189756) # Mxx - Myy / Mxx + Myy 
-    e2 = 2 * 0.04705147820609136 / (4.276403865164397 + 3.9147911399189756) # 2Mxy / Mxx + Myy
     tpsf = tpsf.shear(e1=e1, e2=e2)
     tpsf_i = tpsf.drawImage(scale=0.2,method='no_pixel')
     ratio = test_val / galsim.hsm.FindAdaptiveMom(tpsf_i).moments_sigma
