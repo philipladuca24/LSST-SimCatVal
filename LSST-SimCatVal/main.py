@@ -76,16 +76,16 @@ if __name__ == "__main__":
 
     print(sys.argv)
 
-    # with open(Dp1_sample, 'rb') as f:
-    #     rsp_sample = pickle.load(f)
+    with open(Dp1_sample, 'rb') as f:
+        rsp_sample = pickle.load(f)
 
-    # position = sample_position(ind, 67)
-    # ra = position[ind-1][0]
-    # dec = position[ind-1][1]
-    # sample = rsp_sample[ind-1].copy()
-    # sample.pop('ra')
-    # sample.pop('dec')
-    # ##temp
-    # # simp = {'r':sample['r']}
-    # _ = SimCatVal(skycat_path,ra,dec,im_size,50,sample,31.4,ind,save_path)
+    position = sample_position(ind, 67)
+    ra = position[ind-1][0]
+    dec = position[ind-1][1]
+    sample = rsp_sample[ind-1].copy()
+    sample.pop('ra')
+    sample.pop('dec')
+    ##temp
+    # simp = {'r':sample['r']}
+    _ = SimCatVal(skycat_path,ra,dec,im_size,50,sample,31.4,ind,save_path)
 
