@@ -8,6 +8,7 @@ from astropy.table import Table
 import galsim
 from utils import get_wcs, get_psf, get_noise, WORLD_ORIGIN
 from skycat import SkyCat
+from diffcat import DiffCat
 from afw_utils import create_afw
 
 def make_sim(
@@ -17,11 +18,16 @@ def make_sim(
     img_size,
     buffer,
     config_dic,
-    coadd_zp
+    coadd_zp,
+    diff_path=None,
+    diff_ra=None,
+    diff_dec=None
 ):
     pointing = galsim.CelestialCoord(ra=ra * galsim.degrees,dec=dec * galsim.degrees)
     wcs = get_wcs(img_size, pointing)
     skycat = SkyCat(skycat_path, pointing, img_size, buffer, wcs)
+
+    
     images_afw = {}
     truths = {}
     images_save = {'ra': ra, 'dec':dec}
@@ -40,10 +46,26 @@ def make_sim(
 
         final_img = galsim.Image(img_size, img_size, wcs=wcs)
         truth = []
-        for t in ['galaxy', 'star']:
+        
+        if diff_path is not None:
+            diff_pointing = galsim.CelestialCoord(ra=diff_ra * galsim.degrees,dec=diff_dec * galsim.degrees)
+            diff_wcs = get_wcs(img_size, diff_pointing)
+            diffcat = DiffCat(diff_path, diff_pointing, img_size, buffer, diff_wcs)
+            for h in tqdm(range(diffcat.get_n()),mininterval=20, miniters=600):
+                gal, dx, dy, obj_info= diffcat.get_obj(h, band,coadd_zp)
+                stamp = get_stamp(gal, psf, pointing, dx, dy, rng_galsim, skycat, band, wcs, nim, 'diff_gal')
+                # b = stamp.bounds & final_img.bounds  ## need something different here depending on dx dy
+                # if b.isDefined():
+                #     final_img[b] += stamp[b]
+                truth.append(obj_info)
+            ob_types = ['star']
+        else:
+            ob_types = ['star', 'galaxy']
+
+        for t in ob_types:
             for g in tqdm(range(skycat.get_n(t)),mininterval=20, miniters=600):
                 gal, dx, dy, obj_info= skycat.get_obj(t, g, band,coadd_zp)
-                stamp = get_stamp(gal, psf, pointing, dx, dy, rng_galsim, skycat, band, wcs, nim, (t=='star'))
+                stamp = get_stamp(gal, psf, pointing, dx, dy, rng_galsim, skycat, band, wcs, nim, t)
                 b = stamp.bounds & final_img.bounds
                 if b.isDefined():
                     final_img[b] += stamp[b]
