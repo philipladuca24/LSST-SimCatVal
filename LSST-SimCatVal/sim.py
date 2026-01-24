@@ -54,17 +54,19 @@ def make_sim(
             for h in tqdm(range(diffcat.get_n()),mininterval=20, miniters=600):
                 gal, dx, dy, obj_info= diffcat.get_obj(h, band,coadd_zp)
                 stamp = get_stamp(gal, psf, pointing, dx, dy, rng_galsim, skycat, band, wcs, nim, 'diff_gal')
-                # b = stamp.bounds & final_img.bounds  ## need something different here depending on dx dy
-                # if b.isDefined():
-                #     final_img[b] += stamp[b]
-                truth.append(obj_info)
+                b = stamp.bounds & final_img.bounds  
+                if b.isDefined():
+                    final_img[b] += stamp[b]
+                    truth.append(obj_info)
             ob_types = ['star']
         else:
             ob_types = ['star', 'galaxy']
 
         for t in ob_types:
             for g in tqdm(range(skycat.get_n(t)),mininterval=20, miniters=600):
-                gal, dx, dy, obj_info= skycat.get_obj(t, g, band,coadd_zp)
+                gal, dx, dy, obj_info = skycat.get_obj(t, g, band,coadd_zp)
+                if gal is None:
+                    continue
                 stamp = get_stamp(gal, psf, pointing, dx, dy, rng_galsim, skycat, band, wcs, nim, t)
                 b = stamp.bounds & final_img.bounds
                 if b.isDefined():
@@ -97,7 +99,7 @@ def get_stamp(
     image_pos = wcs.toImage(world_pos)
     n_photons = galsim.PoissonDeviate(rng_galsim, mean=gal.flux)()
 
-    if star and n_photons >= 5e5:
+    if star=='star' and n_photons >= 5e5:
         stamp_size = 250
         if n_photons >= 1e8:
             n_photons = 1e8
@@ -115,10 +117,21 @@ def get_stamp(
         stamp.setCenter(image_pos.x, image_pos.y)
         return stamp
 
-
     n_photons = n_photons * nim #for correct poisson noise
     if n_photons >= 1e8:
         n_photons = 1e8
+
+    if star == 'diff_gal':
+        stamp = obj.drawImage(
+            # nx=stamp_size, # this auto chooses a size
+            # ny=stamp_size,
+            wcs=wcs.local(world_pos=world_pos), 
+            method='phot',
+            n_photons=n_photons,
+            maxN=int(1e7),
+            rng=rng_galsim)
+        stamp.setCenter(image_pos.x, image_pos.y)
+        return stamp
 
     stamp = obj.drawImage(
         # nx=stamp_size, # this auto chooses a size

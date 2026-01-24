@@ -1,6 +1,7 @@
 import galsim
 import healpy as hp
 import numpy as np
+import pickle
 
 """Constants"""
 PIXEL_SCALE = 0.2
@@ -36,14 +37,24 @@ def get_wcs(img_size, point):
     )
 
 def get_psf(m2r, e1, e2): #use ratio to convert to fwhm for kolmogorov profile
-    test_val = 3
+    test_val = m2r
     tpsf = galsim.Kolmogorov(fwhm=test_val, scale_unit=galsim.arcsec)
     tpsf = tpsf.shear(e1=e1, e2=e2)
-    tpsf_i = tpsf.drawImage(scale=0.2,method='no_pixel')
+    tpsf_i = tpsf.drawImage(scale=0.2,method='auto')
     ratio = test_val / galsim.hsm.FindAdaptiveMom(tpsf_i).moments_sigma
 
-    psf = galsim.Kolmogorov(fwhm=m2r * ratio, scale_unit=galsim.arcsec)
-    psf = psf.shear(e1=e1, e2=e2)
+    tpsf = galsim.Kolmogorov(fwhm=test_val * ratio, scale_unit=galsim.arcsec)
+    tpsf = tpsf.shear(e1=e1, e2=e2)
+    tpsf_i = tpsf.drawImage(scale=0.2,method='auto')
+    ratio2 = test_val / galsim.hsm.FindAdaptiveMom(tpsf_i).moments_sigma
+
+    tpsf = galsim.Kolmogorov(fwhm=test_val * ratio *ratio2, scale_unit=galsim.arcsec)
+    tpsf = tpsf.shear(e1=e1, e2=e2)
+    tpsf_i = tpsf.drawImage(scale=0.2,method='auto')
+    ratio3 = test_val / galsim.hsm.FindAdaptiveMom(tpsf_i).moments_sigma
+
+    psf = galsim.Kolmogorov(fwhm=test_val * ratio * ratio2 *ratio3, scale_unit=galsim.arcsec)
+    psf = psf.shear(e1=e1, e2=e2)   
     return psf
     # fwhm = 1.5367183837183993 * m2r * 0.2 #convert pixels to arcsec
     # psf = galsim.Kolmogorov(fwhm=fwhm,scale_unit=galsim.arcsec)
@@ -164,6 +175,14 @@ def sample_position(count, inp):
     # xy_points = np.column_stack((ra_span[xx], dec_span[yy]))
     mask = is_point_in_polygon(ra_new, dec_new, x1, y1)
     xy_points = np.column_stack((x1[mask], y1[mask]))
+    rand_perm = np.random.permutation(len(xy_points))
+    rand_perm = rand_perm[:min(len(xy_points),count)]
+    return xy_points[rand_perm]
+
+def sample_diff_position(count, inp):
+    np.random.seed(inp)
+    with open("diffsky_1deg_points.pickle",'rb') as f:
+        xy_points = pickle.load(f)
     rand_perm = np.random.permutation(len(xy_points))
     rand_perm = rand_perm[:min(len(xy_points),count)]
     return xy_points[rand_perm]

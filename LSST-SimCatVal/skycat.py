@@ -52,11 +52,13 @@ class SkyCat:
             #     flux = flux_cap
         else: 
             skycat_obj = self.galaxies[index]
+            if skycat_obj.get_native_attribute('redshift') > 3.0:
+                return None,None,None,None
             flux = get_flux(skycat_obj, band)#(skycat_obj.get_LSST_flux(band, mjd=MJD))# * exptime * COLLECTING_AREA) #only needed if not setting ZP in bandpass
             flux = convert_flux(flux, self.bands[band],coadd_zp)
             faint = False # false
         if np.isnan(flux):
-            return None
+            return None,None,None,None
         
         if flux < 40:
             faint = True #True
@@ -72,9 +74,6 @@ class SkyCat:
             else:
                 if component in seds:
                     gs_obj_list.append(gsobjs[component] * seds[component])
-
-        if not gs_obj_list:
-            return None
 
         if len(gs_obj_list) == 1:
             gs_object = gs_obj_list[0]

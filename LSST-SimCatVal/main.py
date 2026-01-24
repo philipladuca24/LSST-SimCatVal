@@ -6,7 +6,7 @@ import astropy.units as u
 from astropy.coordinates import SkyCoord, match_coordinates_sky
 from sim import make_sim
 from afw_utils import run_lsst_pipe_single, COLUMNS
-from utils import sample_position
+from utils import sample_position, sample_diff_position
 from IPython import get_ipython
 from datetime import datetime
 import pickle
@@ -25,15 +25,22 @@ def SimCatVal(
     config_dic,
     coadd_zp,
     ind,
-    save_path
+    save_path,
+    diff_path=None,
+    diff_ra=None,
+    diff_dec=None
+
 ):
     assert os.path.isfile(skycat_path)
   
     print('Generating Sims') #this should take in info dict which is ouput of sampler, also need to change world origin
-    afw_dic, truths, npy_dic = make_sim(skycat_path, ra, dec, img_size, buffer, config_dic, coadd_zp)
+    afw_dic, truths, npy_dic = make_sim(skycat_path, ra, dec, img_size, buffer, config_dic, coadd_zp, diff_path,diff_ra,diff_dec)
+
+    # return afw_dic, truths, npy_dic
     
-    timestamp = datetime.now().strftime("%Y%m%dT%H") 
+    timestamp = datetime.now().strftime("%Y%m%dT%H%M") 
     file_path = f'{save_path}/run_{timestamp}_{ind}'
+    print(file_path)
     os.makedirs(file_path, exist_ok=True)
     with open(f'{file_path}/ECDFS_sim_im.pkl', "wb") as f:
         pickle.dump(npy_dic, f)
@@ -64,7 +71,7 @@ def SimCatVal(
         pickle.dump(cats, f)
     print("Done!")
     
-    return afw_dic, cats, truths, area
+    return afw_dic,npy_dic, cats, truths, area
 
 
 if __name__ == "__main__":
@@ -73,19 +80,24 @@ if __name__ == "__main__":
     Dp1_sample = sys.argv[3]
     im_size = int(sys.argv[4])
     save_path = sys.argv[5]
-
     print(sys.argv)
-
     with open(Dp1_sample, 'rb') as f:
         rsp_sample = pickle.load(f)
 
-    position = sample_position(ind, 67)
+    position = sample_position(ind, 123)
     ra = position[ind-1][0]
     dec = position[ind-1][1]
     sample = rsp_sample[ind-1].copy()
     sample.pop('ra')
     sample.pop('dec')
-    ##temp
-    # simp = {'r':sample['r']}
-    _ = SimCatVal(skycat_path,ra,dec,im_size,50,sample,31.4,ind,save_path)
+    # sample = {'i':sample['i']} ######### temp maybe add this so you dont have to do all bands?
+
+    if len(sys.argv) >6:
+        diff_path = sys.argv[6]
+        diff_position = sample_diff_position(ind, 123)
+        diff_ra = diff_position[ind-1][0]
+        diff_dec = diff_position[ind-1][1]
+        _ = SimCatVal(skycat_path,ra,dec,im_size,50,sample,31.4,ind,save_path,'diffsky_1deg_245_54.pickle',diff_ra,diff_dec)
+    else:    
+        _ = SimCatVal(skycat_path,ra,dec,im_size,50,sample,31.4,ind,save_path)
 
