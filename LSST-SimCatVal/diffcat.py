@@ -55,7 +55,8 @@ class DiffCat:
             if my_cmp == 'knots':
                 hlr = row[f'r50_disk_as']
                 # q = np.minimum(row[f'beta_disk_as'],row[f'alpha_disk_as']) / np.maximum(row[f'beta_disk_as'],row[f'alpha_disk_as'])
-                q = row[f'alpha_disk_as'] / row[f'beta_disk_as'] ## this is wrong but the catalog has them backwards
+                # q = row[f'alpha_disk_as'] / row[f'beta_disk_as'] ## this is wrong (not for new diffsky!!!!) but the catalog has them backwards
+                q = row[f'beta_disk_as'] / row[f'alpha_disk_as']
                 e1 = (1 - q) / (1 + q) * np.cos(2*row[f'psi_disk'])
                 e2 = (1 - q) / (1 + q) * np.sin(2*row[f'psi_disk'])
                 shear = galsim.Shear(g1=e1, g2=e2)
@@ -85,7 +86,8 @@ class DiffCat:
                 # hlr = np.sqrt(row[f'alpha_{my_cmp}_as'] * row[f'beta_{my_cmp}_as'])
                 hlr = row[f'r50_{my_cmp}_as']
                 # q = np.minimum(row[f'alpha_{my_cmp}_as'],row[f'beta_{my_cmp}_as']) / np.maximum(row[f'alpha_{my_cmp}_as'],row[f'beta_{my_cmp}_as'])
-                q = row[f'alpha_{my_cmp}_as'] / row[f'beta_{my_cmp}_as']
+                # q = row[f'alpha_{my_cmp}_as'] / row[f'beta_{my_cmp}_as']
+                q = row[f'beta_{my_cmp}_as'] / row[f'alpha_{my_cmp}_as']
                 e1 = (1 - q) / (1 + q) * np.cos(2*row[f'psi_{my_cmp}'])
                 e2 = (1 - q) / (1 + q) * np.sin(2*row[f'psi_{my_cmp}'])
                 shear = galsim.Shear(g1=e1, g2=e2)

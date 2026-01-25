@@ -181,7 +181,7 @@ def sample_position(count, inp):
 
 def sample_diff_position(count, inp):
     np.random.seed(inp)
-    with open("diffsky_1deg_points.pickle",'rb') as f:
+    with open("diffsky_1deg_points_250_58.pickle",'rb') as f: ## change depending on diffsky
         xy_points = pickle.load(f)
     rand_perm = np.random.permutation(len(xy_points))
     rand_perm = rand_perm[:min(len(xy_points),count)]

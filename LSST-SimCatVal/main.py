@@ -97,7 +97,7 @@ if __name__ == "__main__":
         diff_position = sample_diff_position(ind, 123)
         diff_ra = diff_position[ind-1][0]
         diff_dec = diff_position[ind-1][1]
-        _ = SimCatVal(skycat_path,ra,dec,im_size,50,sample,31.4,ind,save_path,'diffsky_1deg_245_54.pickle',diff_ra,diff_dec)
+        _ = SimCatVal(skycat_path,ra,dec,im_size,50,sample,31.4,ind,save_path,'newdiffsky_1deg_250_58.pickle',diff_ra,diff_dec)
     else:    
         _ = SimCatVal(skycat_path,ra,dec,im_size,50,sample,31.4,ind,save_path)
 
