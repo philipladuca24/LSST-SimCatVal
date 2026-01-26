@@ -28,7 +28,8 @@ def SimCatVal(
     save_path,
     diff_path=None,
     diff_ra=None,
-    diff_dec=None
+    diff_dec=None,
+    save=True,
 
 ):
     assert os.path.isfile(skycat_path)
@@ -37,15 +38,6 @@ def SimCatVal(
     afw_dic, truths, npy_dic = make_sim(skycat_path, ra, dec, img_size, buffer, config_dic, coadd_zp, diff_path,diff_ra,diff_dec)
 
     # return afw_dic, truths, npy_dic
-    
-    timestamp = datetime.now().strftime("%Y%m%dT%H%M") 
-    file_path = f'{save_path}/run_{timestamp}_{ind}'
-    print(file_path)
-    os.makedirs(file_path, exist_ok=True)
-    with open(f'{file_path}/ECDFS_sim_im.pkl', "wb") as f:
-        pickle.dump(npy_dic, f)
-    with open(f'{file_path}/ECDFS_sim_truth.pkl', "wb") as f:
-        pickle.dump(truths, f)
 
     print('Running Pipeline')
     matches = []
@@ -67,8 +59,17 @@ def SimCatVal(
         # matches.append(match)
 
     area = (img_size * 0.2 /60)**2
-    with open(f'{file_path}/ECDFS_sim_meas_single.pkl', "wb") as f:
-        pickle.dump(cats, f)
+    if save:
+        timestamp = datetime.now().strftime("%Y%m%dT%H%M") 
+        file_path = f'{save_path}/run_{timestamp}_{ind}'
+        print(file_path)
+        os.makedirs(file_path, exist_ok=True)
+        with open(f'{file_path}/ECDFS_sim_im.pkl', "wb") as f:
+            pickle.dump(npy_dic, f)
+        with open(f'{file_path}/ECDFS_sim_truth.pkl', "wb") as f:
+            pickle.dump(truths, f)
+        with open(f'{file_path}/ECDFS_sim_meas_single.pkl', "wb") as f:
+            pickle.dump(cats, f)
     print("Done!")
     
     return afw_dic,npy_dic, cats, truths, area
@@ -84,7 +85,7 @@ if __name__ == "__main__":
     with open(Dp1_sample, 'rb') as f:
         rsp_sample = pickle.load(f)
 
-    position = sample_position(ind, 123)
+    position = sample_position(1000, 123)
     ra = position[ind-1][0]
     dec = position[ind-1][1]
     sample = rsp_sample[ind-1].copy()
@@ -94,7 +95,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) >6:
         diff_path = sys.argv[6]
-        diff_position = sample_diff_position(ind, 123)
+        diff_position = sample_diff_position(1000, 123)
         diff_ra = diff_position[ind-1][0]
         diff_dec = diff_position[ind-1][1]
         _ = SimCatVal(skycat_path,ra,dec,im_size,50,sample,31.4,ind,save_path,'newdiffsky_1deg_250_58.pickle',diff_ra,diff_dec)
