@@ -1,0 +1,26 @@
+#!/bin/bash
+#SBATCH -p RM        
+#SBATCH -t 1:00:00
+#SBATCH --cpus-per-task=1 
+#SBATCH --mem=20G
+#SBATCH -o slurm/out.%A_setup
+
+source ~/main/miniforge3/etc/profile.d/conda.sh
+conda activate diffsky
+
+echo "Running task setup"
+
+cd /hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal
+
+## Hyperparams
+diffsky_folder=""
+diffsky_b_num=355
+im_size=900
+skycat="/hildafs/home/pladuca/main/skyCatalog.yaml"
+Dp1_sample="/hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal/ECDFS_1000_psf_e12.pkl"
+save_path="/hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal/outputs_vdiffnew"
+diffcat='hahalolol'
+
+python create_diffsky_bounds.py ${SLURM_ARRAY_TASK_ID} ${skycat} ${Dp1_sample} ${im_size} ${save_path} ${diffcat}
+
+echo 'done!'

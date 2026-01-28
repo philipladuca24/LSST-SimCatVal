@@ -160,7 +160,7 @@ def sample_position(count, inp):
     dec_span = np.linspace(dec_cen-span_dec, dec_cen+span_dec, 67)
     x1, y1 = np.meshgrid(ra_span, dec_span)
     
-    vertices = hp.boundaries(32, 10307, step=1)
+    vertices = hp.boundaries(32, 10307, step=1)# instead of hard coding I can determine which hp I have and loop through them 
     x, y, z = vertices
     theta = np.arccos(z)   
     phi = np.arctan2(y, x)    

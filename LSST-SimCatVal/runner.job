@@ -1,0 +1,25 @@
+#!/bin/bash
+#SBATCH -p RM        
+#SBATCH -t 1:00:00
+#SBATCH --cpus-per-task=1 
+#SBATCH --array=1-1001%100  #include +1 since the last job fails  
+#SBATCH --mem=20G
+#SBATCH -o slurm/out.%A_%a
+
+source ~/main/miniforge3/etc/profile.d/conda.sh
+conda activate LSST
+
+echo "Running task ${SLURM_ARRAY_TASK_ID}"
+
+cd /hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal
+
+## Hyperparams
+skycat="/hildafs/home/pladuca/main/skyCatalog.yaml"
+Dp1_sample="/hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal/ECDFS_1000_psf_e12.pkl"
+im_size=900
+save_path="/hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal/outputs_vdiffnew"
+diffcat='hahalolol'
+
+python main.py ${SLURM_ARRAY_TASK_ID} ${skycat} ${Dp1_sample} ${im_size} ${save_path} ${diffcat}
+
+echo 'done!'
