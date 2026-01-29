@@ -14,12 +14,18 @@ echo "Running task ${SLURM_ARRAY_TASK_ID}"
 cd /hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal
 
 ## Hyperparams
+diff_path="/hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal/diffsky_new"
+im_size=900
 skycat="/hildafs/home/pladuca/main/skyCatalog.yaml"
 Dp1_sample="/hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal/ECDFS_1000_psf_e12.pkl"
-im_size=900
 save_path="/hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal/outputs_vdiffnew"
-diffcat='hahalolol'
 
-python main.py ${SLURM_ARRAY_TASK_ID} ${skycat} ${Dp1_sample} ${im_size} ${save_path} ${diffcat}
+diff_path=${1:-$diff_path}
+im_size=${2:-$im_size}
+skycat=${3:-$skycat}
+Dp1_sample=${4:-$Dp1_sample}
+save_path=${5:-$save_path}
+
+python main.py ${SLURM_ARRAY_TASK_ID} ${skycat} ${Dp1_sample} ${im_size} ${save_path} ${diff_path}
 
 echo 'done!'

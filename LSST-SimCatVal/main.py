@@ -95,10 +95,10 @@ if __name__ == "__main__":
 
     if len(sys.argv) >6:
         diff_path = sys.argv[6]
-        diff_position = sample_diff_position(1000, 123)
+        diff_position = sample_diff_position(1000, 123, diff_path)
         diff_ra = diff_position[ind-1][0]
         diff_dec = diff_position[ind-1][1]
-        _ = SimCatVal(skycat_path,ra,dec,im_size,50,sample,31.4,ind,save_path,'newdiffsky_1deg_250_58.pickle',diff_ra,diff_dec)
+        _ = SimCatVal(skycat_path,ra,dec,im_size,50,sample,31.4,ind,save_path,diff_path,diff_ra,diff_dec)
     else:    
         _ = SimCatVal(skycat_path,ra,dec,im_size,50,sample,31.4,ind,save_path)
 

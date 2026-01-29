@@ -9,7 +9,7 @@ from astropy.coordinates import Angle, SkyCoord
 import astropy.units as u
 
 class DiffCat:
-    def __init__(self,diffsky_path, pointing, img_size, buffer, wcs,):
+    def __init__(self, diffsky_path, pointing, img_size, buffer, wcs,):
         self.img_size = img_size
         self.buffer = buffer
         self.wcs = wcs
@@ -19,7 +19,7 @@ class DiffCat:
         self._sersic_bulge = 4
 
         ## open the precomputed file
-        with open(diffsky_path, 'rb') as f:
+        with open(f'{diffsky_path}/diffcat.pickle', 'rb') as f:
             diffcat = pickle.load(f)
  
         coords = SkyCoord(ra=diffcat['ra'],dec=diffcat['dec'])
