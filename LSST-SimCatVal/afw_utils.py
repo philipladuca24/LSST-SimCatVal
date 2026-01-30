@@ -1,12 +1,9 @@
 import lsst.afw.image as afwImage
 import lsst.afw.math as afwMath
 from lsst.meas.algorithms import KernelPsf
-from lsst.pipe.tasks.characterizeImage import CharacterizeImageTask
 from lsst.meas.algorithms.detection import SourceDetectionTask
-from lsst.meas.algorithms.subtractBackground import SubtractBackgroundTask
 from lsst.meas.deblender import SourceDeblendTask
 from lsst.meas.base import SingleFrameMeasurementTask
-from lsst.meas.algorithms import GaussianPsfFactory as psffac
 import lsst.meas.extensions.gaap
 import lsst.meas.modelfit
 import lsst.geom as geom
@@ -16,6 +13,9 @@ from lsst.afw.table import SourceTable
 import galsim
 import coord
 import numpy as np
+from lsst.afw.image import MultibandExposure
+from lsst.meas.extensions.scarlet import ScarletDeblendTask, updateCatalogFootprints
+from lsst.afw.table import SourceCatalog
 
 ## multi pipe imports
 # from lsst.pipe.tasks.multiBand import DetectCoaddSourcesTask, MeasureMergedCoaddSourcesTask, DeblendCoaddSourcesMultiTask
@@ -160,85 +160,48 @@ def run_lsst_pipe_single(exp, deblend=True):
     #     return detected_catalog.asAstropy()[COLUMNS+['deblend_nChild']]  
     return detected_catalog.asAstropy() #[COLUMNS]
 
-# def run_lsst_pipe_multi(exp_dict):
-#     ref_exp = exp_dict['i']
-#     bbox = ref_exp.getBBox()
-#     wcs = ref_exp.getWcs()
+def run_lsst_pipe_multi(bands,exp):
+    coadds = MultibandExposure.fromExposures(bands, exp)
+    for i in range(len(bands)):
+        coadds[bands[i]].setWcs(exp[i].getWcs())
+        coadds[bands[i]].setPhotoCalib(exp[i].getPhotoCalib())
 
-#     # Minimal synthetic tract+patch
-#     tractId = 0
-#     patchId = (0,0)
-#     tractInfo = TractInfo(id=tractId,wcs=wcs,bbox=bbox,config=BaseSkyMap.ConfigClass())
-#     patchInfo = PatchInfo(id=patchId,tract=tractInfo,bbox=bbox)
-#     skyInfo = SkyInfo(tractInfo=tractInfo,patchInfo=patchInfo,bbox=bbox,wcs=wcs)
+    schema = SourceCatalog.Table.makeMinimalSchema()
+    raerr = schema.addField("coord_raErr", type="F")
+    decerr = schema.addField("coord_decErr", type="F")
+
+    detectionTask = SourceDetectionTask(schema=schema)
+    config = ScarletDeblendTask.ConfigClass()
+    deblendTask = ScarletDeblendTask(schema=schema, config=config)
     
-#     configDetection = DetectCoaddSourcesTask.ConfigClass() # all from Tae code
-#     configDetection.thresholdValue = 3
-#     # configDetection.thresholdType = "stdev" 
-#     configDetection.doTempLocalBackground = False
-#     configDetection.reEstimateBackground = False
-#     # configDetection.nSigmaToGrow = 2.0
-#     # configDetection.nSigmaForKernel = 10
-#     # configDetection.minPixels = 4
+    measureConfig = SingleFrameMeasurementTask.ConfigClass()
+    measureConfig.plugins.names |= [
+        "modelfit_DoubleShapeletPsfApprox",
+        "modelfit_CModel",
+        "ext_gaap_GaapFlux",
+    ]
+    measureConfig.slots.modelFlux = "modelfit_CModel"
+    
+    measureTask = SingleFrameMeasurementTask(config=measureConfig, schema=schema)
 
-#     configMergeDetect = MergeDetectionsTask.ConfigClass()
-#     configDeblend = DeblendCoaddSourcesMultiTask.ConfigClass()
+    table = SourceCatalog.Table.make(schema)
+    detectionResult = detectionTask.run(table, coadds["i"])
+    catalog = detectionResult.sources
+    
+    deblendedCatalog, scarletModelData  = deblendTask.deblend(coadds, catalog)
+    outCatalog = {}
+    for band in bands:
+        # Update footprints for this band
+        updateCatalogFootprints(
+            modelData=scarletModelData,
+            catalog=deblendedCatalog,
+            band=band
+        )
+        print(f"Measuring band {band}")
+        measureTask.run(deblendedCatalog, coadds[band])
 
-#     configMeasurement = MeasureMergedCoaddSourcesTask.ConfigClass()
-#     configMeasurement.plugins.names |= [
-#         "modelfit_DoubleShapeletPsfApprox",
-#         "modelfit_CModel",
-#         "ext_gaap_GaapFlux",
-#     ]
-#     configMeasurement.slots.modelFlux = "modelfit_CModel"
-#     configMeasurement.plugins['ext_gaap_GaapFlux'].doMeasure = True
+        _catalog = SourceCatalog(deblendedCatalog.table.clone())
+        _catalog.extend(deblendedCatalog, deep=True)
+        outCatalog[band] = _catalog.asAstropy()
 
-#     configMergeMeasure = MergeMeasurementsTask.ConfigClass()
-#     configForcedPhot = ForcedPhotCoaddTask.ConfigClass()
-
-#     configWrite = WriteObjectTableTask.ConfigClass()
-
-#     schema = SourceTable.makeMinimalSchema()
-#     raerr = schema.addField("coord_raErr", type="F")
-#     decerr = schema.addField("coord_decErr", type="F")
-
-#     detect = SourceDetectionTask(schema=schema, config=configDetection)
-#     detect.canMultiprocess = True
-#     mergeDetect = MergeDetectionsTask(schema=schema, config=configMergeDetect)
-
-#     deblend = DeblendCoaddSourcesMultiTask(config=configDeblend, schema=schema)
-
-#     measure = MeasureMergedCoaddSourcesTask(schema=schema, config=configMeasurement)
-#     measure.canMultiprocess = True
-
-#     mergeMeasure = MergeMeasurementsTask(schema=schema, config=configMergeMeasure)
-#     mergeMeasure.priorityList = ['i','r','g','z','y','u']
-#     forcedPhot = ForcedPhotCoaddTask(schema=schema, config=configForcedPhot)
-#     write = WriteObjectTableTask(schema=schema, config=configWrite)
-
-#     idFactory = IdFactory.makeSimple()
-#     dec = DeconvolutionTask()
-#     ids = {'u':1, 'g':2,'r':3,'i':4,'z':5,'y':6}
-#     sources = {}
-#     deconvolvedCoadds = {}
-#     bands = []
-#     for band, exp in exp_dict.items():
-#         deconvolvedCoadds[band] = dec.run(exposure=exp).exposure
-#         sources[band] = detect.run(exp, idFactory, ids[band]).sources
-#         bands.append(band)
-#     mergedDet = mergeDetect.run(sources, skyInfo=skyInfo, idFactory=idFactory,skySeed=67)
-#     deblended = deblend.run(coadds=exp_dict, bands=bands, mergedDetections=mergedDet.mergedDetections, deconvolvedCoadds=deconvolvedCoadds, idFactory=idFactory)
-#     measurements = {}
-#     for band, exp in exp_dict.items():
-#         measurements[band] = measure.run(exposure=exp, sources=deblended.sources, skyInfo=skyInfo, exposureId=ids[band])
-#     mergeMes = mergeMeasure.run(measurements)
-#     forcedResults = {}
-#     for band, exp in exp_dict.items():
-#         forcedResults[band] = forcedPhot.run(measCat=mergeMes.sources,exposure=exp,refCat=mergeMes.sources,refWcs=exp.getWcs(),exposureId=ids[band])
-
-#     out = write.run(forcedResults, 0, 0)
-
-#     print(out)
-#     print(out.columns)
-
-#     return out[COLUMNS+['deblend_nChild']]  
+    return outCatalog

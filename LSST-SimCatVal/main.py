@@ -5,7 +5,7 @@ from astropy.table import hstack
 import astropy.units as u
 from astropy.coordinates import SkyCoord, match_coordinates_sky
 from sim import make_sim
-from afw_utils import run_lsst_pipe_single, COLUMNS
+from afw_utils import run_lsst_pipe_single,run_lsst_pipe_multi, COLUMNS
 from utils import sample_position, sample_diff_position
 from IPython import get_ipython
 from datetime import datetime
@@ -40,14 +40,13 @@ def SimCatVal(
     # return afw_dic, truths, npy_dic
 
     print('Running Pipeline')
-    matches = []
-    cats = {}
-    for band in tqdm(config_dic.keys()):
-        lsst_cat = run_lsst_pipe_single(afw_dic[band])
-        cats[band] = lsst_cat
+    # matches = []
+    # cats = {}
+    # for band in tqdm(config_dic.keys()):
+    #     lsst_cat = run_lsst_pipe_single(afw_dic[band])
+    #     cats[band] = lsst_cat
 
         #matching move to utils?
-
         # ob_coord = SkyCoord(ra=cat['coord_ra'], dec=cat['coord_dec'])
         # true_coord = SkyCoord(ra=truths[band]['ra']*u.degree, dec=truths[band]['dec']*u.degree)
         # idx, d2d, d3d = match_coordinates_sky(ob_coord, true_coord)
@@ -57,6 +56,8 @@ def SimCatVal(
         # truth_matches = truths[band][idx[sep_constraint]]
         # match = hstack([ob_matches,truth_matches])
         # matches.append(match)
+
+    cats = run_lsst_pipe_multi([b for b in config_dic.keys()], [afw_dic[i] for i in config_dic.keys()])
 
     area = (img_size * 0.2 /60)**2
     if save:
@@ -72,7 +73,7 @@ def SimCatVal(
             pickle.dump(cats, f)
     print("Done!")
     
-    return afw_dic,npy_dic, cats, truths, area
+    return afw_dic, npy_dic, cats, truths, area
 
 
 if __name__ == "__main__":
