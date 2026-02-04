@@ -1,17 +1,15 @@
 import galsim
 import numpy as np
-from skycatalogs import skyCatalogs
-from skycatalogs.utils import PolygonalRegion
 from utils import get_bandpasses
 from utils import MJD, convert_flux, get_flux
 import pickle
 from astropy.coordinates import Angle, SkyCoord
 import astropy.units as u
+import dask.dataframe as dd
+from astropy.table import Table
 
 class DiffCat:
     def __init__(self, diffsky_path, pointing, img_size, buffer, wcs,):
-        self.img_size = img_size
-        self.buffer = buffer
         self.wcs = wcs
         self.pointing = pointing
 
@@ -19,16 +17,36 @@ class DiffCat:
         self._sersic_bulge = 4
 
         ## open the precomputed file
-        with open(f'{diffsky_path}/diffcat.pickle', 'rb') as f:
-            diffcat = pickle.load(f)
- 
-        coords = SkyCoord(ra=diffcat['ra'],dec=diffcat['dec'])
-        main = SkyCoord(ra=pointing.ra.deg*u.degree, dec=pointing.dec.deg*u.degree)
-        mask = (main.separation(coords) <= (np.sqrt(2)*(img_size/2 + buffer) * 0.2)*u.arcsec)
-        self.galaxies = diffcat[mask]
+        # with open(f'{diffsky_path}/diffcat.pickle', 'rb') as f:
+        #     diffcat = pickle.load(f)
+        
+        # coords = SkyCoord(ra=diffcat['ra'],dec=diffcat['dec'])
+        # main = SkyCoord(ra=pointing.ra.deg*u.degree, dec=pointing.dec.deg*u.degree)
+        # mask = (main.separation(coords) <= (np.sqrt(2)*(img_size/2 + buffer) * 0.2)*u.arcsec)
+        # self.galaxies = diffcat[mask] # cahnge to pandas to loose units
+        # self.ngal = len(self.galaxies)
+
+        radius = (np.sqrt(2)*(img_size/2 + 2*buffer) * 0.2) * u.arcsec
+        radius_deg = radius.to(u.deg)
+        ra = pointing.ra.deg*u.degree
+        dec = pointing.dec.deg*u.degree
+        ra_min = ra - radius_deg / np.cos(np.deg2rad(dec))
+        ra_max = ra + radius_deg / np.cos(np.deg2rad(dec))
+        dec_min = dec - radius_deg
+        dec_max = dec + radius_deg
+
+        dataset = dd.read_parquet(f'{diffsky_path}/diffcat.parquet')
+
+        filt = dataset[((dataset["ra"] > ra_min.value) &
+                  (dataset["ra"] < ra_max.value) &
+                  (dataset["dec"] > dec_min.value) &
+                  (dataset["dec"] < dec_max.value))]
+
+        table = filt.compute()
+
+        self.galaxies = Table.from_pandas(table)
         self.ngal = len(self.galaxies)
-        # self.nstar = len(self.stars)
-        # self.bands = get_bandpasses()
+
 
     def get_knot_size(self, z):
         q = -0.5
@@ -61,7 +79,7 @@ class DiffCat:
                 e2 = (1 - q) / (1 + q) * np.sin(2*row[f'psi_disk'])
                 shear = galsim.Shear(g1=e1, g2=e2)
                 ud = galsim.UniformDeviate(int(ind))
-                sm = row[f'logsm_obs'].value
+                sm = row[f'logsm_obs'] #.value
                 m = (50-3)/(12-6)  # (knot_n range)/(logsm range)
                 n_knot_max = m*(sm-6)+3
                 n_knot = int(ud()*n_knot_max)  # random n up to n_knot_max
@@ -99,7 +117,7 @@ class DiffCat:
         return obj_dict
 
     def get_diff_flux(self,mag,coadd_zp):
-        return 10**(0.4*(coadd_zp - mag.value))
+        return 10**(0.4*(coadd_zp - mag)) #.value))
 
     def get_n(self):
         return self.ngal
@@ -123,12 +141,13 @@ class DiffCat:
         gs_object.object_type = "diff_galaxy"
 
         coord = galsim.CelestialCoord(
-            ra=diff_info['ra'].value * galsim.degrees,
-            dec=diff_info['dec'].value * galsim.degrees,
+            ra=diff_info['ra'] * galsim.degrees, #.value * galsim.degrees,
+            dec=diff_info['dec'] * galsim.degrees #.value * galsim.degrees,
         )
         u, v = self.pointing.project(coord)
         dx = u.deg * 3600
         dy = v.deg * 3600
 
-        return gs_object, dx, dy, [diff_info['ra'].value, diff_info['dec'].value, self.get_diff_flux(diff_info[f'lsst_{band}'], coadd_zp), 'diff_galaxy'] #optional items to make a truth catalog
+        return gs_object, dx, dy, [diff_info['ra'], diff_info['dec'], self.get_diff_flux(diff_info[f'lsst_{band}'], coadd_zp), 'diff_galaxy']
+        # return gs_object, dx, dy, [diff_info['ra'].value, diff_info['dec'].value, self.get_diff_flux(diff_info[f'lsst_{band}'], coadd_zp), 'diff_galaxy'] #optional items to make a truth catalog
 

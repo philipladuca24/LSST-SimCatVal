@@ -10,6 +10,16 @@ from utils import get_wcs, get_psf, get_noise, WORLD_ORIGIN
 from skycat import SkyCat
 from diffcat import DiffCat
 from afw_utils import create_afw
+from joblib import Parallel, delayed
+
+def process_object_joblib(idx, band, cat, psf, pointing, wcs, nim, coadd_zp, seed_base):
+    rng = galsim.BaseDeviate(seed=seed_base + idx)
+    gal, dx, dy, obj_info= cat.get_obj(idx, band, coadd_zp)
+
+    if gal is None:
+        return None, None
+    stamp = get_stamp(gal, psf, pointing, dx, dy, rng, cat, band, wcs, nim, 'diff_gal')
+    return stamp, obj_info
 
 def make_sim(
     skycat_path,
@@ -21,7 +31,8 @@ def make_sim(
     coadd_zp,
     diff_path=None,
     diff_ra=None,
-    diff_dec=None
+    diff_dec=None,
+    n_jobs=None
 ):
     pointing = galsim.CelestialCoord(ra=ra * galsim.degrees,dec=dec * galsim.degrees)
     wcs = get_wcs(img_size, pointing)
@@ -51,9 +62,20 @@ def make_sim(
             diff_pointing = galsim.CelestialCoord(ra=diff_ra * galsim.degrees,dec=diff_dec * galsim.degrees)
             diff_wcs = get_wcs(img_size, diff_pointing)
             diffcat = DiffCat(diff_path, diff_pointing, img_size, buffer, diff_wcs)
-            for h in tqdm(range(diffcat.get_n()),mininterval=20, miniters=600):
-                gal, dx, dy, obj_info= diffcat.get_obj(h, band,coadd_zp)
-                stamp = get_stamp(gal, psf, pointing, dx, dy, rng_galsim, skycat, band, wcs, nim, 'diff_gal')
+
+            # for h in tqdm(range(diffcat.get_n()),mininterval=20, miniters=600):
+            #     gal, dx, dy, obj_info= diffcat.get_obj(h, band, coadd_zp)
+            #     stamp = get_stamp(gal, psf, pointing, dx, dy, rng_galsim, skycat, band, wcs, nim, 'diff_gal')
+            #     b = stamp.bounds & final_img.bounds  
+            #     if b.isDefined():
+            #         final_img[b] += stamp[b]
+            #         truth.append(obj_info)
+
+            results = Parallel(n_jobs=n_jobs)(
+                delayed(process_object_joblib)(idx, band, diffcat, psf, pointing, wcs, nim, coadd_zp, 12345
+                ) for idx in tqdm(range(diffcat.get_n()),mininterval=20, miniters=600))
+
+            for stamp, obj_info in results:
                 b = stamp.bounds & final_img.bounds  
                 if b.isDefined():
                     final_img[b] += stamp[b]
@@ -72,12 +94,16 @@ def make_sim(
                 if b.isDefined():
                     final_img[b] += stamp[b]
                     truth.append(obj_info)
+        print("making_final",flush=True)
         final_img += noise_img
-        
+        print('making psf',flush=True)
         psf_im = psf.drawImage(nx=41,ny=41,scale=0.2, dtype=float)
-        images_save[band] = {'image':final_img.array.copy(), 'psf':psf_m2r, 'sigma':sigma, 'n_images':nim}
+        print('making afw',flush=True)
         afw_im = create_afw(final_img, wcs, band, psf_im, sigma, coadd_zp)
         images_afw[band] = afw_im
+        print('making save',flush=True)
+        images_save[band] = {'afw_image':afw_im, 'psf':psf_m2r, 'sigma':sigma, 'n_images':nim}
+        print('making truth',flush=True)
         truths[band] = (Table(rows=truth, names=('ra', 'dec','flux','ob_type')))
     return images_afw, truths, images_save
 
@@ -99,10 +125,14 @@ def get_stamp(
     image_pos = wcs.toImage(world_pos)
     n_photons = galsim.PoissonDeviate(rng_galsim, mean=gal.flux)()
 
+    n_photons = n_photons * nim #for correct poisson noise
+    if n_photons >= 5e7:
+        n_photons = 5e7
+
     if star=='star' and n_photons >= 5e5:
-        stamp_size = 250
-        if n_photons >= 1e8:
-            n_photons = 1e8
+        stamp_size = 300
+        if n_photons >= 5e7:
+            n_photons = 5e7
             stamp_size = 600
 
         stamp = obj.drawImage(
@@ -115,13 +145,8 @@ def get_stamp(
             maxN=int(1e7),
             rng=rng_galsim)
         stamp.setCenter(image_pos.x, image_pos.y)
-        return stamp
 
-    n_photons = n_photons * nim #for correct poisson noise
-    if n_photons >= 1e8:
-        n_photons = 1e8
-
-    if star == 'diff_gal':
+    elif star == 'diff_gal':
         stamp = obj.drawImage(
             # nx=stamp_size, # this auto chooses a size
             # ny=stamp_size,
@@ -131,16 +156,16 @@ def get_stamp(
             maxN=int(1e7),
             rng=rng_galsim)
         stamp.setCenter(image_pos.x, image_pos.y)
-        return stamp
 
-    stamp = obj.drawImage(
-        # nx=stamp_size, # this auto chooses a size
-        # ny=stamp_size,
-        bandpass=skycat.bands[band], 
-        wcs=wcs.local(world_pos=world_pos), 
-        method='phot',
-        n_photons=n_photons,
-        maxN=int(1e7),
-        rng=rng_galsim)
-    stamp.setCenter(image_pos.x, image_pos.y)
+    else:
+        stamp = obj.drawImage(
+            # nx=stamp_size, # this auto chooses a size
+            # ny=stamp_size,
+            bandpass=skycat.bands[band], 
+            wcs=wcs.local(world_pos=world_pos), 
+            method='phot',
+            n_photons=n_photons,
+            maxN=int(1e7),
+            rng=rng_galsim)
+        stamp.setCenter(image_pos.x, image_pos.y)
     return stamp

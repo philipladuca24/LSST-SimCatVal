@@ -9,25 +9,14 @@ import lsst.meas.modelfit
 import lsst.geom as geom
 from lsst.geom import Point2D
 from lsst.afw.geom import makeSkyWcs
-from lsst.afw.table import SourceTable
+from lsst.afw.table import SourceTable, Schema
 import galsim
 import coord
 import numpy as np
 from lsst.afw.image import MultibandExposure
 from lsst.meas.extensions.scarlet import ScarletDeblendTask, updateCatalogFootprints
 from lsst.afw.table import SourceCatalog
-
-## multi pipe imports
-# from lsst.pipe.tasks.multiBand import DetectCoaddSourcesTask, MeasureMergedCoaddSourcesTask, DeblendCoaddSourcesMultiTask
-# from lsst.pipe.tasks.mergeDetections import MergeDetectionsTask
-# from lsst.pipe.tasks.mergeMeasurements import MergeMeasurementsTask
-# from lsst.pipe.tasks.postprocess import WriteObjectTableTask
-# from lsst.drp.tasks.forcedPhotCoadd import ForcedPhotCoaddTask
-# from lsst.pipe.tasks.coaddBase import SkyInfo
-# from lsst.skymap import TractInfo, PatchInfo, BaseSkyMap
-# from lsst.meas.algorithms import DeconvolutionTask
-# from lsst.meas.base import IdFactory
-
+from joblib import Parallel, delayed
 from utils import get_sat_vals
 
 COLUMNS = [
@@ -160,7 +149,24 @@ def run_lsst_pipe_single(exp, deblend=True):
     #     return detected_catalog.asAstropy()[COLUMNS+['deblend_nChild']]  
     return detected_catalog.asAstropy() #[COLUMNS]
 
-def run_lsst_pipe_multi(bands,exp):
+def measure_single_band(band, coadd_band_data, deblend_catalog_data, scarlet_model_data, measureConfig, schema):
+    """Measure a single band - parallelizable function"""
+    measureTask = SingleFrameMeasurementTask(config=measureConfig, schema=schema)
+    print(f"Measuring band {band}", flush=True)
+    updateCatalogFootprints(
+        modelData=scarlet_model_data,
+        catalog=deblend_catalog_data,
+        band=band
+    )
+
+    measureTask.run(deblend_catalog_data, coadd_band_data)
+
+    _catalog = SourceCatalog(deblend_catalog_data.table.clone())
+    _catalog.extend(deblend_catalog_data, deep=True)
+    print(f"Finished band {band}", flush=True)
+    return band, _catalog.asAstropy()
+
+def run_lsst_pipe_multi(bands,exp, n_jobs):
     coadds = MultibandExposure.fromExposures(bands, exp)
     for i in range(len(bands)):
         coadds[bands[i]].setWcs(exp[i].getWcs())
@@ -173,6 +179,12 @@ def run_lsst_pipe_multi(bands,exp):
     detectionTask = SourceDetectionTask(schema=schema)
     config = ScarletDeblendTask.ConfigClass()
     deblendTask = ScarletDeblendTask(schema=schema, config=config)
+
+    pre_measurement_schema = deblendTask.schema
+    base_schema = Schema()
+    for item in pre_measurement_schema:
+        field = item.field
+        base_schema.addField(field)
     
     measureConfig = SingleFrameMeasurementTask.ConfigClass()
     measureConfig.plugins.names |= [
@@ -185,23 +197,51 @@ def run_lsst_pipe_multi(bands,exp):
     measureTask = SingleFrameMeasurementTask(config=measureConfig, schema=schema)
 
     table = SourceCatalog.Table.make(schema)
+    print('Starting Detections', flush=True)
+
     detectionResult = detectionTask.run(table, coadds["i"])
     catalog = detectionResult.sources
-    
+
+    print('Starting Deblend', flush=True)
     deblendedCatalog, scarletModelData  = deblendTask.deblend(coadds, catalog)
     outCatalog = {}
-    for band in bands:
-        # Update footprints for this band
-        updateCatalogFootprints(
-            modelData=scarletModelData,
-            catalog=deblendedCatalog,
-            band=band
-        )
-        print(f"Measuring band {band}")
-        measureTask.run(deblendedCatalog, coadds[band])
+    # print('Starting Measurements', flush=True)
+    # for band in bands:
+    #     # Update footprints for this band
+    #     updateCatalogFootprints(
+    #         modelData=scarletModelData,
+    #         catalog=deblendedCatalog,
+    #         band=band
+    #     )
+    #     print(f"Measuring band {band}",flush=True)
+    #     measureTask.run(deblendedCatalog, coadds[band])
 
-        _catalog = SourceCatalog(deblendedCatalog.table.clone())
-        _catalog.extend(deblendedCatalog, deep=True)
-        outCatalog[band] = _catalog.asAstropy()
+    #     _catalog = SourceCatalog(deblendedCatalog.table.clone())
+    #     _catalog.extend(deblendedCatalog, deep=True)
+    #     outCatalog[band] = _catalog.asAstropy()
+
+    print(f'Deblended {len(deblendedCatalog)} sources', flush=True)
+    
+    print(f'Starting Measurements (parallel with {n_jobs} jobs)', flush=True)
+    
+    job_args = []
+    for band in bands:
+        job_args.append((
+            band, 
+            coadds[band],
+            deblendedCatalog,
+            scarletModelData,
+            measureConfig,
+            base_schema))
+    
+    results = Parallel(n_jobs=n_jobs, backend='loky')(
+        delayed(measure_single_band)(*args) for args in job_args
+    )
+    
+    outCatalog = {}
+    for band, catalog in results:
+        outCatalog[band] = catalog
+    
+    print('Measurements complete', flush=True)
 
     return outCatalog

@@ -3,7 +3,9 @@ outputs_test/
 outputs_v2/
 outputs_v4/
 outputs*
+diffsky*
 pickles/
+diffsky_new/
 ECDFS_1000.pkl
 test_sim_3000_i_4-800542855802589_2-286575_31-4.npy
 test_truths_3000_i_4-800542855802589_2-286575_31-4.csv
@@ -13,9 +15,6 @@ diffsky_1deg_points_250_58.pickle
 diffsky_1deg_245_54.pickle
 diffsky_1deg_points.pickle
 diffsky_1deg.pickle
-
-testing.ipynb
-testing2.ipynb
 
 dp1_mags_v1.pickle
 dp1_mags_v2.pickle
@@ -33,6 +32,7 @@ test_psf_cat2.pkl
 outputs_v3
 full_cat_v2.pkl
 true_cat_v2.pkl
+temp_afw_img.pickle
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
