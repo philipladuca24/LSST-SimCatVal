@@ -38,10 +38,11 @@ def make_sim(
     wcs = get_wcs(img_size, pointing)
     skycat = SkyCat(skycat_path, pointing, img_size, buffer, wcs)
 
-    
     images_afw = {}
     truths = {}
     images_save = {'ra': ra, 'dec':dec}
+    images_save['diff_ra'] = diff_ra
+    images_save['diff_dec'] = diff_dec
     for band in tqdm(config_dic.keys(), mininterval=10):
         psf_m2r = config_dic[band]['psf_radius']
         sigma = config_dic[band]['sigma']

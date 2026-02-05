@@ -35,7 +35,8 @@ def SimCatVal(
 
 ):
     assert os.path.isfile(skycat_path)
-  
+
+    print(datetime.now(),flush=True)
     print('Generating Sims',flush=True) #this should take in info dict which is ouput of sampler, also need to change world origin
     afw_dic, truths, npy_dic = make_sim(skycat_path, ra, dec, img_size, buffer, config_dic, coadd_zp, diff_path, diff_ra, diff_dec, n_jobs)
 
@@ -44,11 +45,21 @@ def SimCatVal(
     print('Running Pipeline',flush=True)
     # matches = []
 
-    # if forced == 0:
-    cats = {}
-    for band in tqdm(config_dic.keys()):
-        lsst_cat = run_lsst_pipe_single(afw_dic[band])
-        cats[band] = lsst_cat
+    if save:
+        timestamp = datetime.now().strftime("%Y%m%d") 
+        file_path = f'{save_path}/run_{timestamp}_{ind}'
+        print(file_path)
+        os.makedirs(file_path, exist_ok=True)
+        with open(f'{file_path}/ECDFS_sim_im.pkl', "wb") as f:
+            pickle.dump(npy_dic, f)
+        with open(f'{file_path}/ECDFS_sim_truth.pkl', "wb") as f:
+            pickle.dump(truths, f)
+
+    if forced == 0:
+        cats = {}
+        for band in tqdm(config_dic.keys()):
+            lsst_cat = run_lsst_pipe_single(afw_dic[band])
+            cats[band] = lsst_cat
 
             #matching move to utils?
             # ob_coord = SkyCoord(ra=cat['coord_ra'], dec=cat['coord_dec'])
@@ -60,25 +71,27 @@ def SimCatVal(
             # truth_matches = truths[band][idx[sep_constraint]]
             # match = hstack([ob_matches,truth_matches])
             # matches.append(match)
-    # else:
-    print('Pipeline forced',flush=True)
-    cats_f = run_lsst_pipe_multi([b for b in config_dic.keys()], [afw_dic[i] for i in config_dic.keys()], n_jobs)
+        if save:
+            with open(f'{file_path}/ECDFS_sim_meas_single.pkl', "wb") as f:
+                pickle.dump(cats, f)
+    else:
+        print('Pipeline Forced',flush=True)
+        lsst_cat = run_lsst_pipe_single(afw_dic, forced, n_jobs)
 
-    print('Saving outputs', flush=True)
-    area = (img_size * 0.2 /60)**2
-    if save:
-        timestamp = datetime.now().strftime("%Y%m%dT%H%M") 
-        file_path = f'{save_path}/run_{timestamp}_{ind}'
-        print(file_path)
-        os.makedirs(file_path, exist_ok=True)
-        with open(f'{file_path}/ECDFS_sim_im.pkl', "wb") as f:
-            pickle.dump(npy_dic, f)
-        with open(f'{file_path}/ECDFS_sim_truth.pkl', "wb") as f:
-            pickle.dump(truths, f)
-        with open(f'{file_path}/ECDFS_sim_meas_single.pkl', "wb") as f:
-            pickle.dump(cats, f)
-        with open(f'{file_path}/ECDFS_sim_meas_force.pkl', "wb") as f:
-            pickle.dump(cats_f, f)
+        if save:
+            with open(f'{file_path}/ECDFS_sim_meas_forced.pkl', "wb") as f:
+                pickle.dump(lsst_cat, f)
+
+        print(datetime.now(),flush=True)
+        print('Pipeline Scarlet',flush=True)
+        cats_f = run_lsst_pipe_multi([b for b in config_dic.keys()], [afw_dic[i] for i in config_dic.keys()], n_jobs)
+
+        print('Saving outputs', flush=True)
+        area = (img_size * 0.2 /60)**2
+        if save:
+            with open(f'{file_path}/ECDFS_sim_meas_forced_s.pkl', "wb") as f:
+                pickle.dump(cats_f, f)
+        cats = (lsst_cat, cats_f)
     print("Done!")
     
     return afw_dic, npy_dic, cats, truths, area
