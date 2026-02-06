@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -p RM        
-#SBATCH -t 1:00:00
+#SBATCH -t 1:30:00
 #SBATCH --cpus-per-task=3
 #SBATCH --array=1-1001%75 #include +1 since the last job fails  
 #SBATCH --mem=10G
@@ -23,8 +23,8 @@ cd /hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal
 diff_path="/hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal/diffsky_1_28"
 im_size=900
 skycat="/hildafs/home/pladuca/main/skyCatalog.yaml"
-Dp1_sample="/hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal/outputs/ECDFS_3000_psf.pkl"
-save_path="/hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal/outputs_vdiff_1_28"
+Dp1_sample="/hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal/outputs/EDFS_3000_psf.pkl"
+save_path="/hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal/outputs_vdiff_1_28_EDFS"
 forced_phot=1
 
 diff_path=${1:-$diff_path}
@@ -33,7 +33,7 @@ skycat=${3:-$skycat}
 Dp1_sample=${4:-$Dp1_sample}
 save_path=${5:-$save_path}
 
-python main.py ${SLURM_ARRAY_TASK_ID} ${SLURM_ARRAY_TASK_MAX} ${skycat} ${Dp1_sample} ${im_size} ${forced_phot} ${save_path} ${diff_path} ${SLURM_CPUS_PER_TASK}
+python main.py ${SLURM_ARRAY_TASK_ID} ${SLURM_ARRAY_TASK_MAX} ${skycat} ${Dp1_sample} ${im_size} ${forced_phot} ${save_path} ${SLURM_JOB_ID} ${diff_path} ${SLURM_CPUS_PER_TASK}
 # python main.py 1001 1001 ${skycat} ${Dp1_sample} ${im_size} ${forced_phot} ${save_path} ${diff_path} ${SLURM_CPUS_PER_TASK}
 
 ELAPSED=$((SECONDS - START_TIME))

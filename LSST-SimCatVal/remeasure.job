@@ -1,0 +1,34 @@
+#!/bin/bash
+#SBATCH -p RM        
+#SBATCH -t 1:00:00
+#SBATCH --cpus-per-task=3
+#SBATCH --array=1-1001%75 #include +1 since the last job fails  
+#SBATCH --mem=10G
+#SBATCH -o /hildafs/home/pladuca/main/slurm/out.%A_%a
+
+START_TIME=$SECONDS
+
+export OMP_NUM_THREADS=2
+export MKL_NUM_THREADS=2
+export OPENBLAS_NUM_THREADS=2
+
+source ~/main/miniforge3/etc/profile.d/conda.sh
+conda activate LSST
+
+echo "Running task ${SLURM_ARRAY_TASK_ID}"
+
+cd /hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal
+
+BASE_DIR="/hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal/outputs_vdiff_1_28"
+
+FOLDERS=($(ls -d ${BASE_DIR}/*/ | sort))
+
+FOLDER=${FOLDERS[$SLURM_ARRAY_TASK_ID - 1]}
+echo ${FOLDER}
+
+python recompute.py ${FOLDER} ${SLURM_CPUS_PER_TASK}
+
+ELAPSED=$((SECONDS - START_TIME))
+echo "End time: $(date)"
+echo "Total execution time: ${ELAPSED} seconds ($(($ELAPSED / 60)) minutes)"
+echo 'done!'

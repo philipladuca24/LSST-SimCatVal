@@ -200,7 +200,8 @@ def measure_single_band_s(band, coadd_band_data, deblend_catalog_data, scarlet_m
     updateCatalogFootprints(
         modelData=scarlet_model_data,
         catalog=deblend_catalog_data,
-        band=band
+        band=band,
+        imageForRedistribution=coadd_band_data
     )
     print(f"Starting band {band}", flush=True)
     SIZE_LIMIT = 15000

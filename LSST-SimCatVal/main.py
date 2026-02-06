@@ -31,7 +31,7 @@ def SimCatVal(
     diff_ra=None,
     diff_dec=None,
     n_jobs=None,
-    save=True,
+    save=None,
 
 ):
     assert os.path.isfile(skycat_path)
@@ -45,9 +45,8 @@ def SimCatVal(
     print('Running Pipeline',flush=True)
     # matches = []
 
-    if save:
-        timestamp = datetime.now().strftime("%Y%m%d") 
-        file_path = f'{save_path}/run_{timestamp}_{ind}'
+    if save is not None:
+        file_path = f'{save_path}/run_{save}_{ind}'
         print(file_path)
         os.makedirs(file_path, exist_ok=True)
         with open(f'{file_path}/ECDFS_sim_im.pkl', "wb") as f:
@@ -71,14 +70,14 @@ def SimCatVal(
             # truth_matches = truths[band][idx[sep_constraint]]
             # match = hstack([ob_matches,truth_matches])
             # matches.append(match)
-        if save:
+        if save is not None:
             with open(f'{file_path}/ECDFS_sim_meas_single.pkl', "wb") as f:
                 pickle.dump(cats, f)
     else:
         print('Pipeline Forced',flush=True)
         lsst_cat = run_lsst_pipe_single(afw_dic, forced, n_jobs)
 
-        if save:
+        if save is not None:
             with open(f'{file_path}/ECDFS_sim_meas_forced.pkl', "wb") as f:
                 pickle.dump(lsst_cat, f)
 
@@ -88,7 +87,7 @@ def SimCatVal(
 
         print('Saving outputs', flush=True)
         area = (img_size * 0.2 /60)**2
-        if save:
+        if save is not None:
             with open(f'{file_path}/ECDFS_sim_meas_forced_s.pkl', "wb") as f:
                 pickle.dump(cats_f, f)
         cats = (lsst_cat, cats_f)
@@ -105,11 +104,12 @@ if __name__ == "__main__":
     im_size = int(sys.argv[5])
     forced = int(sys.argv[6])
     save_path = sys.argv[7]
+    save = sys.argv[8]
     print(sys.argv)
     with open(Dp1_sample, 'rb') as f:
         rsp_sample = pickle.load(f)
 
-    position = sample_position(ind_max, 223)
+    position = sample_position(ind_max, 557)
     ra = position[ind-1][0]
     dec = position[ind-1][1]
     sample = rsp_sample[ind-1].copy()
@@ -117,15 +117,15 @@ if __name__ == "__main__":
     sample.pop('dec')
     # sample = {'i':sample['i']} ######### temp maybe add this so you dont have to do all bands?
 
-    if len(sys.argv) > 8:
-        diff_path = sys.argv[8]
-        n_jobs = int(sys.argv[9])
-        diff_position = sample_diff_position(ind_max, 223, diff_path)
+    if len(sys.argv) > 9:
+        diff_path = sys.argv[9]
+        n_jobs = int(sys.argv[10])
+        diff_position = sample_diff_position(ind_max, 557, diff_path)
         diff_ra = diff_position[ind-1][0]
         diff_dec = diff_position[ind-1][1]
         print('Running diff')
-        _ = SimCatVal(skycat_path,ra,dec,im_size,50,sample,31.4,ind,forced,save_path,diff_path,diff_ra,diff_dec,n_jobs)
+        _ = SimCatVal(skycat_path,ra,dec,im_size,50,sample,31.4,ind,forced,save_path,diff_path,diff_ra,diff_dec,n_jobs,save)
     else:    
         print('Running OU')
-        _ = SimCatVal(skycat_path,ra,dec,im_size,50,sample,31.4,ind,forced,save_path)
+        _ = SimCatVal(skycat_path,ra,dec,im_size,50,sample,31.4,ind,forced,save_path,save=save)
 
