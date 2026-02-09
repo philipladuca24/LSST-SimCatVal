@@ -109,7 +109,7 @@ if __name__ == "__main__":
     with open(Dp1_sample, 'rb') as f:
         rsp_sample = pickle.load(f)
 
-    position = sample_position(ind_max, 557)
+    position = sample_position(ind_max, 333)
     ra = position[ind-1][0]
     dec = position[ind-1][1]
     sample = rsp_sample[ind-1].copy()
@@ -120,7 +120,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 9:
         diff_path = sys.argv[9]
         n_jobs = int(sys.argv[10])
-        diff_position = sample_diff_position(ind_max, 557, diff_path)
+        diff_position = sample_diff_position(ind_max, 333, diff_path)
         diff_ra = diff_position[ind-1][0]
         diff_dec = diff_position[ind-1][1]
         print('Running diff')

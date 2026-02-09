@@ -4,6 +4,7 @@ outputs_v2/
 outputs_v4/
 outputs*
 diffsky*
+inputs/
 pickles/
 diffsky_new/
 ECDFS_1000.pkl
