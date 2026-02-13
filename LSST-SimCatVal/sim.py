@@ -18,8 +18,8 @@ def process_object_joblib(idx, band, cat, psf, pointing, wcs, nim, coadd_zp, see
 
     if gal is None:
         return None, None
-    stamp = get_stamp(gal, psf, pointing, dx, dy, rng, cat, band, wcs, nim, 'diff_gal')
-    return stamp, obj_info
+    stamp, image_pos = get_stamp(gal, psf, pointing, dx, dy, rng, cat, band, wcs, nim, 'diff_gal')
+    return stamp, obj_info, image_pos
 
 def make_sim(
     skycat_path,
@@ -32,7 +32,7 @@ def make_sim(
     diff_path=None,
     diff_ra=None,
     diff_dec=None,
-    n_jobs=None
+    n_jobs=1
 ):
     pointing = galsim.CelestialCoord(ra=ra * galsim.degrees,dec=dec * galsim.degrees)
     wcs = get_wcs(img_size, pointing)
@@ -76,11 +76,16 @@ def make_sim(
                 delayed(process_object_joblib)(idx, band, diffcat, psf, pointing, wcs, nim, coadd_zp, 12345
                 ) for idx in tqdm(range(diffcat.get_n()),mininterval=20, miniters=600))
 
-            for stamp, obj_info in results:
+            for stamp, obj_info, image_pos in results:
                 b = stamp.bounds & final_img.bounds  
                 if b.isDefined():
                     final_img[b] += stamp[b]
+                    if (image_pos.x >= 0) & (image_pos.x <= img_size) | (image_pos.y >= 0) | (image_pos.y <= img_size):
+                        obj_info.append('True')
+                    else:
+                        obj_info.append('False')
                     truth.append(obj_info)
+
             ob_types = ['star']
         else:
             ob_types = ['star', 'galaxy']
@@ -90,10 +95,11 @@ def make_sim(
                 gal, dx, dy, obj_info = skycat.get_obj(t, g, band,coadd_zp)
                 if gal is None:
                     continue
-                stamp = get_stamp(gal, psf, pointing, dx, dy, rng_galsim, skycat, band, wcs, nim, t)
+                stamp, _ = get_stamp(gal, psf, pointing, dx, dy, rng_galsim, skycat, band, wcs, nim, t)
                 b = stamp.bounds & final_img.bounds
                 if b.isDefined():
                     final_img[b] += stamp[b]
+                    obj_info.append('True')
                     truth.append(obj_info)
         print("making_final",flush=True)
         final_img += noise_img
@@ -105,7 +111,7 @@ def make_sim(
         print('making save',flush=True)
         images_save[band] = {'afw_image':afw_im, 'psf':psf_m2r, 'sigma':sigma, 'n_images':nim}
         print('making truth',flush=True)
-        truths[band] = (Table(rows=truth, names=('ra', 'dec','flux','ob_type')))
+        truths[band] = (Table(rows=truth, names=('ra', 'dec','flux','redshift','ob_type','in_img')))
     return images_afw, truths, images_save
 
 def get_stamp(
@@ -169,4 +175,4 @@ def get_stamp(
             maxN=int(1e7),
             rng=rng_galsim)
         stamp.setCenter(image_pos.x, image_pos.y)
-    return stamp
+    return stamp, image_pos

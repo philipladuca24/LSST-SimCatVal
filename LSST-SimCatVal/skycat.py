@@ -96,5 +96,5 @@ class SkyCat:
         dx = u.deg * 3600
         dy = v.deg * 3600
 
-        return gs_object, dx, dy, [skycat_obj.ra, skycat_obj.dec, float(flux), str(gs_object.object_type)] #optional items to make a truth catalog
+        return gs_object, dx, dy, [skycat_obj.ra, skycat_obj.dec, float(flux),0, str(gs_object.object_type)] #optional items to make a truth catalog
 

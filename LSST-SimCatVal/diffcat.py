@@ -147,7 +147,6 @@ class DiffCat:
         u, v = self.pointing.project(coord)
         dx = u.deg * 3600
         dy = v.deg * 3600
-
-        return gs_object, dx, dy, [diff_info['ra'], diff_info['dec'], self.get_diff_flux(diff_info[f'lsst_{band}'], coadd_zp), 'diff_galaxy']
+        return gs_object, dx, dy, [diff_info['ra'], diff_info['dec'], self.get_diff_flux(diff_info[f'lsst_{band}'], coadd_zp), diff_info['redshift'], 'diff_galaxy']
         # return gs_object, dx, dy, [diff_info['ra'].value, diff_info['dec'].value, self.get_diff_flux(diff_info[f'lsst_{band}'], coadd_zp), 'diff_galaxy'] #optional items to make a truth catalog
 
