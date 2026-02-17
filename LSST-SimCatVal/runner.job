@@ -23,7 +23,7 @@ cd /hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal
 diff_path="/hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal/diffsky_1_28"
 im_size=900
 skycat="/hildafs/home/pladuca/main/skyCatalog.yaml"
-Dp1_sample="/hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal/outputs/Rubin_SV_95_-25_3000_psf.pkl"
+Dp1_sample="/hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal/pickles/Rubin_SV_95_-25_3000_psf.pkl"
 save_path="/hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal/outputs_vdiff_1_28_Rubin_SV_95_-25"
 forced_phot=1
 

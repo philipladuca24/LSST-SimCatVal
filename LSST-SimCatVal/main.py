@@ -5,7 +5,7 @@ from astropy.table import hstack
 import astropy.units as u
 from astropy.coordinates import SkyCoord, match_coordinates_sky
 from sim import make_sim
-from afw_utils import run_lsst_pipe_single,run_lsst_pipe_multi, COLUMNS
+from afw_utils import run_lsst_pipe_single,run_lsst_pipe_multi, COLUMNS, PHOT_COLUMNS
 from utils import sample_position, sample_diff_position
 from IPython import get_ipython
 from datetime import datetime
@@ -77,6 +77,8 @@ def SimCatVal(
         print('Pipeline Forced',flush=True)
         lsst_cat = run_lsst_pipe_single(afw_dic, forced, n_jobs)
 
+        lsst_cat = processed_forced(lsst_cat, [b for b in config_dic.keys()], ind)
+
         if save is not None:
             with open(f'{file_path}/ECDFS_sim_meas_forced.pkl', "wb") as f:
                 pickle.dump(lsst_cat, f)
@@ -84,7 +86,8 @@ def SimCatVal(
         print(datetime.now(),flush=True)
         print('Pipeline Scarlet',flush=True)
         cats_f = run_lsst_pipe_multi([b for b in config_dic.keys()], [afw_dic[i] for i in config_dic.keys()], n_jobs)
-
+        cats_f = processed_forced(cats_f, [b for b in config_dic.keys()], ind)
+        
         print('Saving outputs', flush=True)
         area = (img_size * 0.2 /60)**2
         if save is not None:
@@ -94,6 +97,19 @@ def SimCatVal(
     print("Done!")
     
     return afw_dic, npy_dic, cats, truths, area
+
+def processed_forced(cat, bands, ind):
+    cat_to_stack = []
+    for b in bands:
+        if b == 'i':
+            temp = cat[b][COLUMNS]
+            temp['obs_ind'] = ind
+            temp.rename_columns(PHOT_COLUMNS, [n + f'_{b}' for n in PHOT_COLUMNS])
+        else:
+            temp = cat[b][PHOT_COLUMNS]
+            temp.rename_columns(PHOT_COLUMNS, [n + f'_{b}' for n in PHOT_COLUMNS])
+        cat_to_stack.append(temp)
+    return hstack(cat_to_stack)
 
 
 if __name__ == "__main__":

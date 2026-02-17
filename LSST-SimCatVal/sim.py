@@ -17,7 +17,7 @@ def process_object_joblib(idx, band, cat, psf, pointing, wcs, nim, coadd_zp, see
     gal, dx, dy, obj_info= cat.get_obj(idx, band, coadd_zp)
 
     if gal is None:
-        return None, None
+        return None, None, None
     stamp, image_pos = get_stamp(gal, psf, pointing, dx, dy, rng, cat, band, wcs, nim, 'diff_gal')
     return stamp, obj_info, image_pos
 
@@ -95,12 +95,16 @@ def make_sim(
                 gal, dx, dy, obj_info = skycat.get_obj(t, g, band,coadd_zp)
                 if gal is None:
                     continue
-                stamp, _ = get_stamp(gal, psf, pointing, dx, dy, rng_galsim, skycat, band, wcs, nim, t)
+                stamp, image_pos = get_stamp(gal, psf, pointing, dx, dy, rng_galsim, skycat, band, wcs, nim, t)
                 b = stamp.bounds & final_img.bounds
                 if b.isDefined():
                     final_img[b] += stamp[b]
-                    obj_info.append('True')
+                    if (image_pos.x >= 0) & (image_pos.x <= img_size) | (image_pos.y >= 0) | (image_pos.y <= img_size):
+                        obj_info.append('True')
+                    else:
+                        obj_info.append('False')
                     truth.append(obj_info)
+                    
         print("making_final",flush=True)
         final_img += noise_img
         print('making psf',flush=True)

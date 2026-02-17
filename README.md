@@ -8,3 +8,4 @@ Note keeping:
 v6: best skycat run
 vdiff2: 'old' diffsky, note: psf ellipticity not set for this run
 vdiffnew: 'new diffsky run
+vdiff_1_28: 1/28 diffsky catalog, (different suffixes for different fields, none is ecdfs)

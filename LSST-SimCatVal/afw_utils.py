@@ -20,6 +20,7 @@ from joblib import Parallel, delayed
 from utils import get_sat_vals
 
 COLUMNS = [
+    'deblend_nChild',
     'id', 
     'coord_ra', 
     'coord_dec', 
@@ -42,12 +43,26 @@ COLUMNS = [
     'modelfit_CModel_flag',
     'ext_gaap_GaapFlux_1_15x_Optimal_instFlux',
     'ext_gaap_GaapFlux_1_15x_Optimal_instFluxErr',
+    'ext_gaap_GaapFlux_flag',
     'base_CircularApertureFlux_4_5_instFlux',
     'base_CircularApertureFlux_4_5_instFluxErr',
     'base_CircularApertureFlux_9_0_instFlux',
     'base_CircularApertureFlux_9_0_instFluxErr',
     'base_CircularApertureFlux_25_0_instFlux',
     'base_CircularApertureFlux_25_0_instFluxErr',
+    'base_ClassificationSizeExtendedness_flag',
+]
+
+PHOT_COLUMNS = [
+    'base_PsfFlux_instFlux',
+    'base_PsfFlux_instFluxErr',
+    'base_PsfFlux_flag',
+    'modelfit_CModel_instFlux', 
+    'modelfit_CModel_instFluxErr',
+    'modelfit_CModel_flag',
+    'ext_gaap_GaapFlux_1_15x_Optimal_instFlux',
+    'ext_gaap_GaapFlux_1_15x_Optimal_instFluxErr',
+    'ext_gaap_GaapFlux_flag',
 ]
 
 def create_afw(img,wcs,band,psf_im,sigma,coadd_zp):
