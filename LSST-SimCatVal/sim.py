@@ -29,6 +29,7 @@ def make_sim(
     buffer,
     config_dic,
     coadd_zp,
+    ind,
     diff_path=None,
     diff_ra=None,
     diff_dec=None,
@@ -37,6 +38,10 @@ def make_sim(
     pointing = galsim.CelestialCoord(ra=ra * galsim.degrees,dec=dec * galsim.degrees)
     wcs = get_wcs(img_size, pointing)
     skycat = SkyCat(skycat_path, pointing, img_size, buffer, wcs)
+    if diff_path is not None:
+        diff_pointing = galsim.CelestialCoord(ra=diff_ra * galsim.degrees,dec=diff_dec * galsim.degrees)
+        diff_wcs = get_wcs(img_size, diff_pointing)
+        diffcat = DiffCat(diff_path, diff_pointing, img_size, buffer, diff_wcs)
 
     images_afw = {}
     truths = {}
@@ -52,7 +57,7 @@ def make_sim(
         psf = get_psf(psf_m2r, e1, e2)
         
         noise_img = galsim.Image(img_size, img_size, wcs=wcs)
-        rng_galsim = galsim.BaseDeviate()
+        rng_galsim = galsim.BaseDeviate(seed=ind)
         noise = get_noise(rng_galsim, sigma)
         noise_img.addNoise(noise)
 
@@ -60,30 +65,20 @@ def make_sim(
         truth = []
         
         if diff_path is not None:
-            diff_pointing = galsim.CelestialCoord(ra=diff_ra * galsim.degrees,dec=diff_dec * galsim.degrees)
-            diff_wcs = get_wcs(img_size, diff_pointing)
-            diffcat = DiffCat(diff_path, diff_pointing, img_size, buffer, diff_wcs)
-
-            # for h in tqdm(range(diffcat.get_n()),mininterval=20, miniters=600):
-            #     gal, dx, dy, obj_info= diffcat.get_obj(h, band, coadd_zp)
-            #     stamp = get_stamp(gal, psf, pointing, dx, dy, rng_galsim, skycat, band, wcs, nim, 'diff_gal')
-            #     b = stamp.bounds & final_img.bounds  
-            #     if b.isDefined():
-            #         final_img[b] += stamp[b]
-            #         truth.append(obj_info)
-
             results = Parallel(n_jobs=n_jobs)(
-                delayed(process_object_joblib)(idx, band, diffcat, psf, pointing, wcs, nim, coadd_zp, 12345
+                delayed(process_object_joblib)(idx, band, diffcat, psf, pointing, wcs, nim, coadd_zp, ind
                 ) for idx in tqdm(range(diffcat.get_n()),mininterval=20, miniters=600))
 
             for stamp, obj_info, image_pos in results:
                 b = stamp.bounds & final_img.bounds  
                 if b.isDefined():
                     final_img[b] += stamp[b]
-                    if (image_pos.x >= 0) & (image_pos.x <= img_size) | (image_pos.y >= 0) | (image_pos.y <= img_size):
-                        obj_info.append('True')
+                    if (image_pos.x >= 25) & (image_pos.x <= img_size - 25) & (image_pos.y >= 25) & (image_pos.y <= img_size - 25):
+                        obj_info.append(True)
                     else:
-                        obj_info.append('False')
+                        obj_info.append(False)
+                    obj_info.append(image_pos.x)
+                    obj_info.append(image_pos.y)
                     truth.append(obj_info)
 
             ob_types = ['star']
@@ -95,17 +90,19 @@ def make_sim(
                 gal, dx, dy, obj_info = skycat.get_obj(t, g, band,coadd_zp)
                 if gal is None:
                     continue
-                stamp, image_pos = get_stamp(gal, psf, pointing, dx, dy, rng_galsim, skycat, band, wcs, nim, t)
+                stamp, image_pos = get_stamp(gal, psf, pointing, dx, dy, galsim.BaseDeviate(seed=ind + g), skycat, band, wcs, nim, t)
                 b = stamp.bounds & final_img.bounds
                 if b.isDefined():
                     final_img[b] += stamp[b]
-                    if (image_pos.x >= 0) & (image_pos.x <= img_size) | (image_pos.y >= 0) | (image_pos.y <= img_size):
-                        obj_info.append('True')
+                    if (image_pos.x >= 0) & (image_pos.x <= img_size) & (image_pos.y >= 0) & (image_pos.y <= img_size):
+                        obj_info.append(True)
                     else:
-                        obj_info.append('False')
+                        obj_info.append(False)
+                    obj_info.append(image_pos.x)
+                    obj_info.append(image_pos.y)
                     truth.append(obj_info)
                     
-        print("making_final",flush=True)
+        print("making final img",flush=True)
         final_img += noise_img
         print('making psf',flush=True)
         psf_im = psf.drawImage(nx=41,ny=41,scale=0.2, dtype=float)
@@ -115,7 +112,7 @@ def make_sim(
         print('making save',flush=True)
         images_save[band] = {'afw_image':afw_im, 'psf':psf_m2r, 'sigma':sigma, 'n_images':nim}
         print('making truth',flush=True)
-        truths[band] = (Table(rows=truth, names=('ra', 'dec','flux','redshift','ob_type','in_img')))
+        truths[band] = (Table(rows=truth, names=('ra', 'dec','flux','redshift','ob_type','in_img', 'x','y')))
     return images_afw, truths, images_save
 
 def get_stamp(

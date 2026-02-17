@@ -17,12 +17,7 @@ diffsky_folder="/hildafs/home/pladuca/share/cosmos_260120_UM_2026_01_28"
 diffsky_b_num=401
 diffsky_save="/hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal/diffsky_1_28"
 im_size=900
-skycat="/hildafs/home/pladuca/main/skyCatalog.yaml"
-Dp1_sample="/hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal/ECDFS_1000_psf_e12.pkl"
-save_path="/hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal/outputs_vdiffnew"
 
 python create_diffsky_bounds.py ${diffsky_folder} ${diffsky_b_num} ${diffsky_save} ${im_size}
-
-# sbatch runner.job ${diffsky_save} ${im_size} ${skycat} ${Dp1_sample} ${save_path}
 
 echo 'done!'
