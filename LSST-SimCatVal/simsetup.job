@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH -p RM        
 #SBATCH -t 1:00:00
-#SBATCH --cpus-per-task=8 
-#SBATCH --mem=100G
+#SBATCH --cpus-per-task=6 
+#SBATCH --mem=200G
 #SBATCH -o /hildafs/home/pladuca/main/slurm/out.%A_setup
 
 source ~/main/miniforge3/etc/profile.d/conda.sh
@@ -13,9 +13,9 @@ echo "Running task setup"
 cd /hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal
 
 ## Hyperparams
-diffsky_folder="/hildafs/home/pladuca/share/cosmos_260120_UM_2026_01_28"
+diffsky_folder="/hildafs/home/pladuca/share/hltds_cosmos_260120_2026_02_11"
 diffsky_b_num=401
-diffsky_save="/hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal/diffsky_1_28"
+diffsky_save="/hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal/diffsky_2_11"
 im_size=900
 
 python create_diffsky_bounds.py ${diffsky_folder} ${diffsky_b_num} ${diffsky_save} ${im_size}

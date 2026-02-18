@@ -73,10 +73,7 @@ def make_sim(
                 b = stamp.bounds & final_img.bounds  
                 if b.isDefined():
                     final_img[b] += stamp[b]
-                    if (image_pos.x >= 25) & (image_pos.x <= img_size - 25) & (image_pos.y >= 25) & (image_pos.y <= img_size - 25):
-                        obj_info.append(True)
-                    else:
-                        obj_info.append(False)
+                    obj_info.append(((image_pos.x >= 25) & (image_pos.x <= img_size - 25) & (image_pos.y >= 25) & (image_pos.y <= img_size - 25)))
                     obj_info.append(image_pos.x)
                     obj_info.append(image_pos.y)
                     truth.append(obj_info)
@@ -94,10 +91,7 @@ def make_sim(
                 b = stamp.bounds & final_img.bounds
                 if b.isDefined():
                     final_img[b] += stamp[b]
-                    if (image_pos.x >= 0) & (image_pos.x <= img_size) & (image_pos.y >= 0) & (image_pos.y <= img_size):
-                        obj_info.append(True)
-                    else:
-                        obj_info.append(False)
+                    obj_info.append(((image_pos.x >= 0) & (image_pos.x <= img_size) & (image_pos.y >= 0) & (image_pos.y <= img_size)))
                     obj_info.append(image_pos.x)
                     obj_info.append(image_pos.y)
                     truth.append(obj_info)

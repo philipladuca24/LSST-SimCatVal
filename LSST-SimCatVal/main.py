@@ -65,20 +65,12 @@ def SimCatVal(
             with open(f'{file_path}/ECDFS_sim_meas_single.pkl', "wb") as f:
                 pickle.dump(cats, f)
     else:
-        if forced == 2:
-            print('Pipeline Forced',flush=True)
-            lsst_cat = run_lsst_pipe_single(afw_dic, forced, n_jobs)
-            lsst_cat = processed_forced(lsst_cat, [b for b in config_dic.keys()], ind)
-
-            if save is not None:
-                with open(f'{file_path}/ECDFS_sim_meas_forced.pkl', "wb") as f:
-                    pickle.dump(lsst_cat, f)
-
         print(datetime.now(),flush=True)
         print('Pipeline Scarlet',flush=True)
         cats_f = run_lsst_pipe_multi([b for b in config_dic.keys()], [afw_dic[i] for i in config_dic.keys()], n_jobs)
         cats_f = processed_forced(cats_f, [b for b in config_dic.keys()], ind, img_size)
-        match_mask, match_id, t_mcut = match_true(cats_f, truths)
+        match_mask, match_id, t_mcut = match_true(cats_f, truths, coadd_zp)
+        truths['i']['match_cut'] = t_mcut
         cats_f['match'] = match_mask
         cats_f['match_id'] = match_id
         cats_f['match_redshfit'] = truths['i'][t_mcut][match_id]['redshift']
@@ -88,7 +80,18 @@ def SimCatVal(
         if save is not None:
             with open(f'{file_path}/ECDFS_sim_meas_forced_s.pkl', "wb") as f:
                 pickle.dump(cats_f, f)
-        cats = (lsst_cat, cats_f)
+        
+        cats = cats_f
+
+        if forced == 2:
+            print('Pipeline Forced',flush=True)
+            lsst_cat = run_lsst_pipe_single(afw_dic, forced, n_jobs)
+            lsst_cat = processed_forced(lsst_cat, [b for b in config_dic.keys()], ind)
+
+            if save is not None:
+                with open(f'{file_path}/ECDFS_sim_meas_forced.pkl', "wb") as f:
+                    pickle.dump(lsst_cat, f)
+            cats = (lsst_cat, cats_f)
     print("Done!")
     area = ((img_size - 50) * 0.2 /60)**2
     return afw_dic, npy_dic, cats, truths, area
@@ -100,10 +103,11 @@ def processed_forced(cat, bands, ind, img_size):
             temp = cat[b][COLUMNS]
             temp['obs_ind'] = ind
             temp.rename_columns(PHOT_COLUMNS, [n + f'_{b}' for n in PHOT_COLUMNS])
-            if ((temp['base_SdssCentroid_x'] >= 25) & (temp['base_SdssCentroid_x'] <= img_size - 25) & (temp['base_SdssCentroid_y'] >= 25) & (temp['base_SdssCentroid_y'] <= img_size - 25)):
-                temp['in_img'].append(True)
-            else:
-                temp['in_img'].append(False)
+            temp['in_img'] = (
+                (temp['base_SdssCentroid_x'] >= 25) &
+                (temp['base_SdssCentroid_x'] <= img_size - 25) &
+                (temp['base_SdssCentroid_y'] >= 25) &
+                (temp['base_SdssCentroid_y'] <= img_size - 25))
         else:
             temp = cat[b][PHOT_COLUMNS]
             temp.rename_columns(PHOT_COLUMNS, [n + f'_{b}' for n in PHOT_COLUMNS])
@@ -113,10 +117,11 @@ def processed_forced(cat, bands, ind, img_size):
 def match_true(cat, truths, coadd_zp):
     base_cuts = ((cat['deblend_nChild'] == 0) &
         (cat['base_SdssShape_flag'] == False) &
-        (cat['modelfit_CModel_instFlux'] >= 0) &
-        (cat['modelfit_CModel_flag'] == False) &
-        (cat['base_SdssCentroid_flag'] == False))
-    mags = -2.5*np.log10(cat['modelfit_CModel_instFlux']) + coadd_zp
+        (cat['modelfit_CModel_instFlux_i'] >= 0) &
+        (cat['modelfit_CModel_flag_i'] == False) &
+        (cat['base_SdssCentroid_flag'] == False) & 
+        (cat['in_img'] == True))
+    mags = -2.5*np.log10(cat['modelfit_CModel_instFlux_i']) + coadd_zp
     mag_lim = np.percentile(mags[base_cuts], 95) + 1 ## arbitrary, if a mag estimate is off by more than 2 bad, use 1.5?
     t_mcut = (-2.5*np.log10(truths['i']['flux']) + coadd_zp) < mag_lim
     tru = truths['i'][t_mcut]

@@ -51,17 +51,16 @@ def get_full(dpath, poly):
                             'ellipticity_disk','beta_disk','alpha_disk','psi_disk'])
     bound_ds = bound_ds.collect().get_data()
     mask = contains_xy(poly, bound_ds['ra'].data, bound_ds['dec'].data)
-    filtered = bound_ds[mask].copy()
-    return filtered
+    return bound_ds[mask].copy()
 
 inner_poly, cosmology = get_poly(diffsky_path,diff_num,image_size)
-print("Concave Hull Complete")
+print("Concave Hull Complete",flush=True)
 
 xy_points = get_points(inner_poly, image_size)
-print("Points Generated")
+print("Points Generated",flush=True)
 
 diffcat_paths = glob(f'{diffsky_path}/lc_cores*.hdf5')
-full_ds = Parallel(n_jobs=8)(delayed(get_full)(p,inner_poly) for p in diffcat_paths)
+full_ds = Parallel(n_jobs=6)(delayed(get_full)(p,inner_poly) for p in diffcat_paths)
 full_ds = vstack([t for t in full_ds if len(t) > 0])
 
 print('stack created', flush=True)
@@ -79,4 +78,4 @@ full_ds.write(f'{save_path}/diffcat.parquet', overwrite=True)
 with open(f'{save_path}/points.pickle', 'wb') as f:
     pickle.dump(xy_points, f)
 
-print("Complete")
+print("Complete",flush=True)
