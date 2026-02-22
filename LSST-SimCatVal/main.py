@@ -39,10 +39,9 @@ def SimCatVal(
 
     print(datetime.now(),flush=True)
     print('Generating Sims',flush=True) #this should take in info dict which is ouput of sampler, also need to change world origin
-    afw_dic, truths, npy_dic = make_sim(skycat_path, ra, dec, img_size, buffer, config_dic, coadd_zp, ind, diff_path, diff_ra, diff_dec, n_jobs)
+    afw_dic, truth, npy_dic = make_sim(skycat_path, ra, dec, img_size, buffer, config_dic, coadd_zp, ind, diff_path, diff_ra, diff_dec, n_jobs)
 
-    for b in config_dic.keys():
-        truths[b]['obs_ind'] = ind
+    truth['obs_ind'] = ind
 
     print('Running Pipeline',flush=True)
 
@@ -52,8 +51,6 @@ def SimCatVal(
         os.makedirs(file_path, exist_ok=True)
         with open(f'{file_path}/ECDFS_sim_im.pkl', "wb") as f:
             pickle.dump(npy_dic, f)
-        with open(f'{file_path}/ECDFS_sim_truth.pkl', "wb") as f:
-            pickle.dump(truths, f)
 
     if forced == 0:
         cats = {}
@@ -69,12 +66,13 @@ def SimCatVal(
         print('Pipeline Scarlet',flush=True)
         cats_f = run_lsst_pipe_multi([b for b in config_dic.keys()], [afw_dic[i] for i in config_dic.keys()], n_jobs)
         cats_f = processed_forced(cats_f, [b for b in config_dic.keys()], ind, img_size)
-        match_mask, match_id, t_mcut = match_true(cats_f, truths, coadd_zp)
-        truths['i']['match_cut'] = t_mcut
+        match_mask, match_id, t_mcut = match_true(cats_f, truth, coadd_zp)
+        truth['match_cut'] = t_mcut
         cats_f['match'] = match_mask
-        cats_f['match_id'] = match_id
-        cats_f['match_redshfit'] = truths['i'][t_mcut][match_id]['redshift']
-        cats_f['match_flux_i'] = truths['i'][t_mcut][match_id]['flux']
+        cats_f['match_id'] = truth[t_mcut][match_id]['idn']
+        cats_f['match_redshfit'] = truth[t_mcut][match_id]['redshift']
+        for b in config_dic.keys():
+            cats_f[f'match_flux_{b}'] = truth[t_mcut][match_id][f'flux_{b}']
         
         print('Saving outputs', flush=True)
         if save is not None:
@@ -92,9 +90,13 @@ def SimCatVal(
                 with open(f'{file_path}/ECDFS_sim_meas_forced.pkl', "wb") as f:
                     pickle.dump(lsst_cat, f)
             cats = (lsst_cat, cats_f)
+    
+    if save is not None:
+        with open(f'{file_path}/ECDFS_sim_truth.pkl', "wb") as f:
+            pickle.dump(truth, f)
     print("Done!")
     area = ((img_size - 50) * 0.2 /60)**2
-    return afw_dic, npy_dic, cats, truths, area
+    return afw_dic, npy_dic, cats, truth, area
 
 def processed_forced(cat, bands, ind, img_size):
     cat_to_stack = []
@@ -123,8 +125,8 @@ def match_true(cat, truths, coadd_zp):
         (cat['in_img'] == True))
     mags = -2.5*np.log10(cat['modelfit_CModel_instFlux_i']) + coadd_zp
     mag_lim = np.percentile(mags[base_cuts], 95) + 1 ## arbitrary, if a mag estimate is off by more than 2 bad, use 1.5?
-    t_mcut = (-2.5*np.log10(truths['i']['flux']) + coadd_zp) < mag_lim
-    tru = truths['i'][t_mcut]
+    t_mcut = (-2.5*np.log10(truths['flux_i']) + coadd_zp) < mag_lim
+    tru = truths[t_mcut]
     ob_pix = np.column_stack([cat['base_SdssCentroid_x'],cat['base_SdssCentroid_y']])
     true_pix = np.column_stack([tru['x'],tru['y']])
 
@@ -134,8 +136,7 @@ def match_true(cat, truths, coadd_zp):
     idx = np.array(idx)
     sep_mask = dist < 5
 
-    return sep_mask, idx, t_mcut 
-
+    return sep_mask,idx,t_mcut
 
 if __name__ == "__main__":
     ind = int(sys.argv[1])

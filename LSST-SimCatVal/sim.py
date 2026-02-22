@@ -11,6 +11,8 @@ from skycat import SkyCat
 from diffcat import DiffCat
 from afw_utils import create_afw
 from joblib import Parallel, delayed
+from astropy.table import join
+from functools import reduce
 
 def process_object_joblib(idx, band, cat, psf, pointing, wcs, nim, coadd_zp, seed_base):
     rng = galsim.BaseDeviate(seed=seed_base + idx)
@@ -106,8 +108,14 @@ def make_sim(
         print('making save',flush=True)
         images_save[band] = {'afw_image':afw_im, 'psf':psf_m2r, 'sigma':sigma, 'n_images':nim}
         print('making truth',flush=True)
-        truths[band] = (Table(rows=truth, names=('ra', 'dec','flux','redshift','ob_type','in_img', 'x','y')))
-    return images_afw, truths, images_save
+        truths[band] = (Table(rows=truth, names=('ind', 'ra', 'dec','flux','redshift','ob_type','in_img', 'x','y')))
+
+    tables = []
+    for band, tab in truths.items():
+        t.rename_column('flux', f'flux_{band}')
+        tables.append(t)
+    master = reduce(lambda left, right: join(left, right, keys='id', join_type='outer'),tables)
+    return images_afw, master, images_save
 
 def get_stamp(
     gal, 

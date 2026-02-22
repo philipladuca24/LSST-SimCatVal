@@ -16,16 +16,6 @@ class DiffCat:
         self._sersic_disk = 1
         self._sersic_bulge = 4
 
-        ## open the precomputed file
-        # with open(f'{diffsky_path}/diffcat.pickle', 'rb') as f:
-        #     diffcat = pickle.load(f)
-        
-        # coords = SkyCoord(ra=diffcat['ra'],dec=diffcat['dec'])
-        # main = SkyCoord(ra=pointing.ra.deg*u.degree, dec=pointing.dec.deg*u.degree)
-        # mask = (main.separation(coords) <= (np.sqrt(2)*(img_size/2 + buffer) * 0.2)*u.arcsec)
-        # self.galaxies = diffcat[mask] # cahnge to pandas to loose units
-        # self.ngal = len(self.galaxies)
-
         radius = (np.sqrt(2)*(img_size/2 + 2*buffer) * 0.2) * u.arcsec
         radius_deg = radius.to(u.deg)
         ra = pointing.ra.deg*u.degree
@@ -56,9 +46,7 @@ class DiffCat:
             # This also ensures sqrt in formula below has a
             # non-negative argument
             return None
-        # Angular diameter scaling approximation in pc
         dA = (3e9/q**2)*(z*q+(q-1)*(np.sqrt(2*q*z+1)-1))/(1+z)**2*(1.4-0.53*z)
-        # Using typical knot size 250pc, convert to sigma in arcmin
         return 206264.8*250/dA/2.355
     
     def get_diff_object(self,ind, row, band, coadd_zp):
@@ -67,7 +55,6 @@ class DiffCat:
         obj_dict = {}
 
         for component in ['disk','bulge','knots']:
-            # knots use the same major/minor axes as the disk component.
             my_cmp = component 
 
             if my_cmp == 'knots':
@@ -122,7 +109,7 @@ class DiffCat:
     def get_n(self):
         return self.ngal
     
-    def get_obj(self,index,band,coadd_zp): #need to figure out what to use for lsst bandpasses
+    def get_obj(self,index,band,coadd_zp):
         
         diff_info = self.galaxies[index]
         diff_obj = self.get_diff_object(index, diff_info, band, coadd_zp)
@@ -141,12 +128,11 @@ class DiffCat:
         gs_object.object_type = "diff_galaxy"
 
         coord = galsim.CelestialCoord(
-            ra=diff_info['ra'] * galsim.degrees, #.value * galsim.degrees,
-            dec=diff_info['dec'] * galsim.degrees #.value * galsim.degrees,
+            ra=diff_info['ra'] * galsim.degrees,
+            dec=diff_info['dec'] * galsim.degrees
         )
         u, v = self.pointing.project(coord)
         dx = u.deg * 3600
         dy = v.deg * 3600
-        return gs_object, dx, dy, [diff_info['ra'], diff_info['dec'], self.get_diff_flux(diff_info[f'lsst_{band}'], coadd_zp), diff_info['redshift'], 'diff_galaxy']
-        # return gs_object, dx, dy, [diff_info['ra'].value, diff_info['dec'].value, self.get_diff_flux(diff_info[f'lsst_{band}'], coadd_zp), 'diff_galaxy'] #optional items to make a truth catalog
-
+        return gs_object, dx, dy, [index, diff_info['ra'], diff_info['dec'], self.get_diff_flux(diff_info[f'lsst_{band}'], coadd_zp), diff_info['redshift'], 'diff_galaxy']
+        #########################  ^ swap for diff_info['idn']

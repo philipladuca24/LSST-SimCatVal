@@ -72,6 +72,8 @@ dA = cosmology.angular_diameter_distance(full_ds['redshift'])
 for i in ['beta_disk','alpha_disk','beta_bulge','alpha_bulge','r50_bulge','r50_disk']:
     full_ds[f'{i}_as'] = kpc_to_arcsec(full_ds[i],dA)
 
+full_ds['idn'] = np.arange(len(full_ds)) ##new
+
 os.makedirs(save_path, exist_ok=True)
 full_ds.write(f'{save_path}/diffcat.parquet', overwrite=True)
 

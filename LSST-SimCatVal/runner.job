@@ -23,8 +23,8 @@ cd /hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal
 diff_path="/hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal/diffsky_2_11"
 im_size=950
 skycat="/hildafs/home/pladuca/main/skyCatalog.yaml"
-Dp1_sample="/hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal/inputs/ECDFS_3000_psf.pkl"
-save_path="/hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal/outputs_vdiff_2_11"
+Dp1_sample="/hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal/inputs/EDFS_3000_psf.pkl"
+save_path="/hildafs/home/pladuca/main/lsst-sim-package/LSST-SimCatVal/LSST-SimCatVal/outputs_vdiff_2_11_EDFS"
 forced_phot=1
 
 diff_path=${1:-$diff_path}
