@@ -247,6 +247,7 @@ def run_lsst_pipe_multi(bands,exp, n_jobs):
     for i in range(len(bands)):
         coadds[bands[i]].setWcs(exp[i].getWcs())
         coadds[bands[i]].setPhotoCalib(exp[i].getPhotoCalib())
+        coadds[bands[i]].setPsf(exp[i].getPsf())
 
     schema = SourceCatalog.Table.makeMinimalSchema()
     raerr = schema.addField("coord_raErr", type="F")
